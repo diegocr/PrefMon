@@ -1,0 +1,6 @@
+content		prefmon	chrome/content/
+content		prefmon	chrome/content/ contentaccessible=yes
+
+component	{517f9e52-c795-4764-bf77-5e2db596cee6} components/prefmon.js
+contract	@mozilla.org/diegocr/prefmon;1 {517f9e52-c795-4764-bf77-5e2db596cee6}
+category	profile-after-change prefmon @mozilla.org/diegocr/prefmon;1
