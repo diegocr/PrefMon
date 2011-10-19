@@ -39,14 +39,9 @@ const {
 }
 	 = Components, OS = Cc['@mozilla.org/observer-service;1'].getService(Ci.nsIObserverService), PS = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService), CS = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
 Cu['import']("resource://gre/modules/XPCOMUtils.jsm");
-function prefmon_log(m) {
-	dump('Preferences Monitor :: ' + m + "\n");
-	CS.logStringMessage('Preferences Monitor :: ' + (new Date()).toString() + "\n> " + m);
-}
 function prefmon() {
-	this.log = prefmon_log;
-	this.prefs = {};
 	this.pan = {};
+	this.prefs = {};
 	OS.addObserver(this, "profile-after-change", false);
 }
 prefmon.prototype = {
@@ -64,12 +59,13 @@ prefmon.prototype = {
 		QueryInterface : XPCOMUtils.generateQI([Ci.nsISupports, Ci.nsIModule, Ci.nsIFactory])
 	},
 	QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver, Ci.nsISupports, Ci.nsISupportsWeakReference]),
-	wrappedJSObject : null,
-	log : null,
 	prefs : null,
 	pan : null,
 	getWeakReference : function () {
 		return Cu.getWeakReference(this);
+	},
+	log : function (m) {
+		CS.logStringMessage('Preferences Monitor :: ' + (new Date()).toString() + "\n> " + m);
 	},
 	p : function (n) {
 		switch (PS.getPrefType(n)) {
@@ -84,57 +80,6 @@ prefmon.prototype = {
 		}
 		return null;
 	},
-	e : function (s) {
-		return (!s || s === null || s.length < 1 || /^\s+$/.test(s));
-	},
-	z : function (stack, level) {
-		if (!stack) {
-			try {
-				c.a.t.c.h.me();
-			} catch (ex) {
-				if (!("stack" in ex))
-					return null;
-				stack = ex.stack;
-			}
-			level = level || 2;
-		}
-		let Y = level || 1,
-		cO,
-		lV,
-		lO = stack.split("\n"),
-		origin;
-		while (Y < lO.length) {
-			cO = lO[Y].split('@');
-			if (cO.length != 2)
-				break;
-			if (!this.e(cO[0])) { {
-					origin = cO;
-					break;
-				}
-			}
-			Y++;
-		}
-		if (!origin && !(origin = lV))
-			return null;
-		let p = origin[1].lastIndexOf(':');
-		return {
-			sN : origin[1].substr(0, p),
-			sL : origin[1].substr(p + 1),
-			sC : origin[0],
-			get lN() {
-				return parseInt(this.sL);
-			},
-			get ref() {
-				return this.sN + ':' + this.sL;
-			},
-			get ext() {
-				let p = this.sN.indexOf('://') + 1;
-				while (this.sN.charAt(p) == '/')
-					++p;
-				return this.sN.substr(p, this.sN.indexOf('/', p) - p);
-			}
-		};
-	},
 	observe : function (s, t, d) {
 		switch (t) {
 		case 'profile-after-change':
@@ -144,7 +89,7 @@ prefmon.prototype = {
 			for each(let o in PS.getChildList("", {
 					value : 0
 				})) {
-				this.prefs[o] = this.p(o).toString();
+				this.prefs[o] = this.p(o);
 			}
 			OS.removeObserver(this, "profile-after-change");
 			break;
@@ -154,65 +99,95 @@ prefmon.prototype = {
 			break;
 		case 'nsPref:changed': {
 				let b = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator);
-				if (!b || !(b = b.getMostRecentWindow("navigator:browser")) || !(b = b.gBrowser))
-					break;
-				let c = this.z() || {
-					sN : '',
-					sL : 0,
-					sC : '',
-					lN : 0,
-					ref : '',
-					ext : ''
-				},
-				ext = c.ext;
-				if (['global', 'mozapps', 'browser', 'components', 'modules'].indexOf(ext) != -1) {
-					this.log('Permitted change by `' + ext + '´ for "' + d + '"');
-					break;
+				if (!b || !(b = b.getMostRecentWindow("navigator:browser")) || !(b = b.gBrowser)) {
+					this.log('WARNING: Unable to obtain navigator:browser (NotificationBox Unavailable)');
 				}
-				if (c.sN.substr(0, 4) == 'jar:') {
-					ext = c.sN.replace(/^.*\//, '').replace(/\.\w+$/, '');
-				}
-				if (d.indexOf(ext.replace(/^(\w+)[A-Z_]\w+$/, '$1') + '.') != -1) {
-					this.log('Permitted self-made change by `' + ext + '´ for "' + d + '"');
-					break;
-				}
-				let oV = (d in this.prefs ? this.prefs[d] : ''),
-				nV = this.p(d),
+				let c = Components.stack.caller,
+				sN,
+				lN,
+				p,
+				ext,
 				self = this,
-				notify = function (ext) {
-					if (oV == nV) {
-						self.log('VOID change by `' + ext + '´ for "' + d + '"');
-						return;
+				updV = function (k, v) {
+					self.prefs[k] = v;
+				},
+				nV = this.p(d),
+				oV = (d in this.prefs ? this.prefs[d] : null);
+				if (c == null) {
+					this.log('ERROR: Stack unavailable, changed preference: `' + d + '´ FROM `' + oV + '´ TO `' + nV + '´');
+					break;
+				}
+				do {
+					sN = c.filename;
+					lN = c.lineNumber;
+				} while (sN === null && (c = c.caller));
+				if (sN == null) {
+					this.log('ERROR: Unable to obtain caller, changed preference: `' + d + '´ FROM `' + oV + '´ TO `' + nV + '´');
+					break;
+				}
+				if ((p = sN.indexOf(' -> ')) != -1) {
+					sN = sN.substr(p + 4);
+				}
+				p = sN.indexOf('://') + 1;
+				while (sN.charAt(p) == '/')
+					++p;
+				ext = sN.substr(p, sN.indexOf('/', p) - p);
+				if (['global', 'mozapps', 'browser', 'components', 'modules', 'gre'].indexOf(ext) != -1) {
+					this.log('Permitted change by `' + ext + '´ for "' + d + '"');
+					updV(d, nV);
+					break;
+				}
+				if (sN.substr(0, 4) == 'jar:') {
+					ext = sN.replace(/^.*\//, '').replace(/\.\w+$/, '');
+				}
+				if (ext == 'bootstrap')
+					try {
+						ext = sN.match(/extensions\/([^\/]+)\//)[1].replace(/(@.+)?\.xpi!/, '');
+					} catch (e) {}
+
+				if (d.toLowerCase().indexOf((ext.replace(/^(\w+)[A-Z_]\w+$/, '$1') + '.').toLowerCase()) != -1) {
+					this.log('Permitted self-made change by `' + ext + '´ for "' + d + '"');
+					updV(d, nV);
+					break;
+				}
+				if (oV === nV) {
+					this.log('VOID change by `' + ext + '´ for "' + d + '" -> (' + nV + ')');
+					break;
+				}
+				updV(d, nV);
+				let _ = function (v) {
+					if (v === 0)
+						return "0";
+					if (v === false)
+						return 'false';
+					return typeof v != 'string' || v.length ? v.toString().substr(0, 0x80) : null;
+				},
+				nn = this.classDescription,
+				Msg = '`' + ext + '´ changed the value of "' + d + '"',
+				MsgExt = nn + ' :: ' + (new Date()).toString() + "\n\n" + Msg + "\n\noldValue: " + (_(oV) || '`No old Value found´') + "\nnewValue: " + (_(nV) || '`Empty (Value Cleared?)´'),
+				sE = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
+				sE.init(MsgExt, sN, String(lN), lN, null, Ci.nsIScriptError.errorFlag, 'chrome javascript');
+				CS.logMessage(sE);
+				if (!b)
+					break;
+				if (!(d in this.pan)) {
+					this.pan[d] = 0;
+				}
+				if (++this.pan[d] > 3)
+					break;
+				let n = b.getNotificationBox(),
+				bn = "More Info",
+				pn;
+				if ((pn = n.getNotificationWithValue(nn))) {
+					n.removeNotification(pn);
+					bn += '*';
+				}
+				n.appendNotification(nn + ': ' + Msg, nn, "chrome://global/skin/icons/warning-16.png", n.PRIORITY_WARNING_MEDIUM, [{
+							label : bn,
+							accessKey : "I",
+							callback : function ()b.browsers[0].contentWindow.openDialog("chrome://global/content/console.xul", nn, 'centerscreen,resizable')
 					}
-					self.prefs[d] = nV;
-					oV = oV.toString().substr(0, 64);
-					nV = nV.toString().substr(0, 64);
-					let nn = self.classDescription,
-					Msg = '`' + ext + '´ changed the value of "' + d + '"',
-					MsgExt = nn + ' :: ' + (new Date()).toString() + "\n\n" + Msg + "\n\noldValue: " + (oV || '`No old Value found´') + "\nnewValue: " + (nV || '`Empty Value´');
-					let sE = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
-					sE.init(MsgExt, c.sN, c.sL, c.lN, null, Ci.nsIScriptError.errorFlag, 'chrome javascript');
-					CS.logMessage(sE);
-					if (!(d in self.pan)) {
-						self.pan[d] = 0;
-					}
-					if (++self.pan[d] > 3)
-						return;
-					let n = b.getNotificationBox(),
-					bn = "More Info",
-					pn;
-					if ((pn = n.getNotificationWithValue(nn))) {
-						n.removeNotification(pn);
-						bn += '*';
-					}
-					n.appendNotification(nn + ': ' + Msg, nn, "chrome://global/skin/icons/warning-16.png", n.PRIORITY_WARNING_MEDIUM, [{
-								label : bn,
-								accessKey : "I",
-								callback : function ()b.browsers[0].contentWindow.openDialog("chrome://global/content/console.xul", nn, 'centerscreen,resizable')
-						}
-					]);
-			};
-			notify(ext);
+				]);
 		}
 		break;
 	default:
