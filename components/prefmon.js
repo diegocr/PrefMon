@@ -115,6 +115,7 @@ prefmon.prototype = {
 				oV = (d in this.prefs ? this.prefs[d] : null);
 				if (c == null) {
 					this.log('ERROR: Stack unavailable, changed preference: `' + d + '´ FROM `' + oV + '´ TO `' + nV + '´');
+					updV(d, nV);
 					break;
 				}
 				do {
@@ -123,6 +124,7 @@ prefmon.prototype = {
 				} while (sN === null && (c = c.caller));
 				if (sN == null) {
 					this.log('ERROR: Unable to obtain caller, changed preference: `' + d + '´ FROM `' + oV + '´ TO `' + nV + '´');
+					updV(d, nV);
 					break;
 				}
 				if ((p = sN.indexOf(' -> ')) != -1) {
@@ -145,7 +147,8 @@ prefmon.prototype = {
 						ext = sN.match(/extensions\/([^\/]+)\//)[1].replace(/(@.+)?\.xpi!/, '');
 					} catch (e) {}
 
-				if (d.toLowerCase().indexOf((ext.replace(/^(\w+)[A-Z_]\w+$/, '$1') + '.').toLowerCase()) != -1) {
+				let dL = d.toLowerCase();
+				if (dL.indexOf(ext.replace(/^([a-z]+)[A-Z_][a-z]+$/, '$1').toLowerCase() + '.') != -1 || dL.indexOf(ext.toLowerCase() + '.') != -1) {
 					this.log('Permitted self-made change by `' + ext + '´ for "' + d + '"');
 					updV(d, nV);
 					break;
