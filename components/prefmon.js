@@ -14,7 +14,7 @@
  * The Original Code is Preferences Monitor Mozilla Extension.
  * 
  * The Initial Developer of the Original Code is
- * Copyright (C)2011 Diego Casorran <dcasorran@gmail.com>
+ * Copyright (C)2012 Diego Casorran <dcasorran@gmail.com>
  * All Rights Reserved.
  * 
  * Alternatively, the contents of this file may be used under the terms of
@@ -34,7 +34,8 @@
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 	OS = Cc['@mozilla.org/observer-service;1'].getService(Ci.nsIObserverService),
 	PS = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService),
-	CS = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService);
+	CS = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService),
+	WM = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator);
 
 Cu['import']("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -87,6 +88,40 @@ prefmon.prototype = {
 		return null;
 	},
 	
+	c: function(window,nn) {
+		return function() {
+			let wnd = WM.getMostRecentWindow('global:console');
+			
+			if( wnd ) {
+				wnd.focus();
+			} else {
+				wnd = window.openDialog("chrome://global/content/console.xul",nn,'centerscreen,resizable');
+				wnd.addEventListener("load", function() {
+					let w = this;
+					w.removeEventListener("load", arguments.callee, false);
+					w.setTimeout(function(){
+						if(w.gFilter) {
+							w.gFilter.value = nn;
+							w.filterConsole();
+							w.gConsole.scrollToIndex(w.gConsole.itemCount-1);
+						} else {
+							w.gConsole.mode = "Errors";
+						}
+						w.document.title = nn;
+						w = null;
+					},20);
+					
+				}, false );
+			}
+			wnd = window = null;
+		};
+	},
+	
+	e: function(dL,ext) {
+		return ext && (dL.indexOf(ext.toLowerCase() + '.') != -1
+			|| dL.indexOf(ext.replace(/^([a-z]+)[A-Z_][a-z]+$/,'$1').toLowerCase() + '.') != -1);
+	},
+	
 	observe: function(s, t, d) {
 		switch(t) {
 			case 'profile-after-change':
@@ -107,7 +142,7 @@ prefmon.prototype = {
 				break;
 			
 			case 'nsPref:changed': {
-				let b = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator);
+				let b = WM;
 				if(!b || !(b=b.getMostRecentWindow("navigator:browser")) || !(b=b.gBrowser)) {
 					this.log('WARNING: Unable to obtain navigator:browser (NotificationBox Unavailable)');
 				}
@@ -148,18 +183,21 @@ prefmon.prototype = {
 					break;
 				}
 				
-				if(sN.substr(0,4) == 'jar:') {
+				if(/^(jar|file)\:/i.test(sN)) {
 					
 					ext = sN.replace(/^.*\//,'').replace(/\.\w+$/,'');
 				}
 				
 				if(['bootstrap','prefs'].indexOf(ext) != -1) try {
 					ext = sN.match(/extensions\/([^\/]+)\//)[1].replace(/(@.+)?\.xpi!/,'');
-				} catch(e){}
+				} catch(e){} else {
+					try {var ext2 = sN.match(/extensions\/([^\/@]+)@[^\/]+\//)[1];}catch(e){}
+					try {var ext3 = sN.match(/extensions\/[^\/@]+@([^\/]+)\//)[1];}catch(e){}
+					if(ext3)ext3 = ext3.replace(/\.\w+$/,'');
+				}
 				
 				let dL = d.toLowerCase();
-				if(dL.indexOf(ext.replace(/^([a-z]+)[A-Z_][a-z]+$/,'$1').toLowerCase() + '.') != -1
-				|| dL.indexOf(ext.toLowerCase() + '.') != -1) {
+				if(this.e(dL,ext)||this.e(dL,ext2)||this.e(dL,ext3)) {
 					this.log('Permitted self-made change by `'+ext+'´ for "'+d+'"');
 					updV(d,nV);
 					break;
@@ -202,7 +240,7 @@ prefmon.prototype = {
 					bn += '*';
 				}
 				n.appendNotification(nn+': '+Msg,nn,"chrome://global/skin/icons/warning-16.png",n.PRIORITY_WARNING_MEDIUM, [
-					{label:bn,accessKey:"I",callback:function()b.browsers[0].contentWindow.openDialog("chrome://global/content/console.xul",nn,'centerscreen,resizable')}
+					{label:bn,accessKey:"I",callback:this.c(b.browsers[0].contentWindow,nn)}
 				]);
 				
 			}	break;
