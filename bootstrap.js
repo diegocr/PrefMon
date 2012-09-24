@@ -19,6 +19,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 	WM = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator),
 	SP = {
 		console2: ['extensions.consolefilter'],
+		'pdf.js.components': ['pdfjs.database'],
 		noscript: ['dom.max_chrome_script_run_time','dom.max_script_run_time']
 	};
 
@@ -130,6 +131,9 @@ let PrefMon = {
 					break;
 				}
 				
+				// let LOG = (function(m) this.log(m)).bind(this);
+				
+				// LOG(' ^^^ '+ext+' ~ '+sN);
 				if(/^(jar|file)\:/i.test(sN)) {
 					
 					ext = this.sM(decodeURIComponent(sN),/extensions\/([^\/@]+)(?:@[^\/]+)?\//);
@@ -140,6 +144,8 @@ let PrefMon = {
 				ext3 = this.sM(sN,/extensions\/[^\/@]+@([^\/]+)\//);
 				eN = this.gN(ext) || this.gN(''+ext2+'@'+(ext3||'').replace(/\.xpi!?$/,'')) || ext;
 				if(ext3)ext3 = ext3.replace(/(\.\w+)+!?$/,'');
+				
+				// LOG(ext+' ~ '+ext2+' ~ '+ext3+' ~~ '+eN);
 				
 				let dL = d.toLowerCase();
 				for each(let e in [ext,ext2,ext3,eN]) {
