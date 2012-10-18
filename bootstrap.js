@@ -41,8 +41,9 @@ let PrefMon = {
 		CS.logStringMessage('Preferences Monitor :: '+(new Date()).toString()+"\n> "+m);
 	},
 	
-	onInstalled: function(a) this.adb[a.id] = a.name,
-	gN: function(id) id in this.adb && this.adb[id] || null,
+	onEnabled: function(a) this.adb[a.id.toLowerCase()] = a.name,
+	onInstalled: function(a) this.adb[a.id.toLowerCase()] = a.name,
+	gN: function(id) (id = id.toLowerCase(), id in this.adb && this.adb[id] || null),
 	sM: function(s,p) (let (x = s.match(p)) x && x[1]),
 	
 	p: function(n) {
@@ -140,6 +141,7 @@ let PrefMon = {
 					if(ext)ext = ext.replace(/\.xpi!?$/,'');
 				}
 				
+				ext = ext.replace(/-at-jetpack$/,'@jetpack');
 				ext2 = this.sM(sN,/extensions\/([^\/@]+)@[^\/]+\//);
 				ext3 = this.sM(sN,/extensions\/[^\/@]+@([^\/]+)\//);
 				eN = this.gN(ext) || this.gN(''+ext2+'@'+(ext3||'').replace(/\.xpi!?$/,'')) || ext;
@@ -172,7 +174,9 @@ let PrefMon = {
 				c = Components.stack;
 				while((c = c.caller)) {
 					if(c.filename || stack.length)
-						stack.push('@' + c.filename + ':' + c.lineNumber);
+						// stack.push('@' + c.filename + ':' + c.lineNumber);
+						stack.push(('^ ' + c).replace(/\s[^\s]+ -> /g,' ')
+							.replace(/\s(jar:)?file:.*?\/extensions\//,' Resource://'));
 				}
 				
 				let _ = function(v) {
