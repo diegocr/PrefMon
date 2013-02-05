@@ -73,13 +73,26 @@ let PrefMon = {
 					w.setTimeout(function(){
 						if(w.gFilter) {
 							w.gFilter.value = nn;
-							w.filterConsole();
-							w.gConsole.scrollToIndex(w.gConsole.itemCount-1);
+							try {
+								// console2
+								w.filterConsole();
+								w.gConsole.scrollToIndex(w.gConsole.itemCount-1);
+							} catch(e) {
+								// Fx18+
+								w.changeFilter();
+								let order = w.gConsole.sortOrder;
+								if(order != 'reverse') {
+									w.changeSortOrder('reverse');
+									w.addEventListener('unload', function() {
+										w.changeSortOrder(order);
+										w.removeEventListener("unload", arguments.callee, false);
+									}, false);
+								}
+							}
 						} else {
 							w.gConsole.mode = "Errors";
 						}
 						w.document.title = nn;
-						w = null;
 					},20);
 					
 				}, false );
