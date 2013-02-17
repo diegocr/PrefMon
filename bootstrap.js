@@ -21,6 +21,11 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		console2: ['extensions.consolefilter'],
 		'pdf.js.components': ['pdfjs.database'],
 		noscript: ['dom.max_chrome_script_run_time','dom.max_script_run_time']
+	},
+	SPR = {
+		'prefmon-ecleaner': /./,
+		'chatzilla': /^extensions\.irc\./,
+		'wot': /^weboftrust\./
 	};
 
 Cu.import('resource://gre/modules/AddonManager.jsm');
@@ -169,7 +174,7 @@ let PrefMon = {
 					if(!~dL.indexOf(eL + '.')
 					&& !~dL.indexOf(eL + '@')
 					&& !~dL.indexOf(e.replace(/^([a-z]+)[A-Z_][a-z]+$/,'$1').toLowerCase() + '.')) {
-						if(!~(SP[e]||'').indexOf(dL))
+						if(!~(SP[e]||'').indexOf(dL) && (!SPR[e] || !SPR[e].test(dL)))
 							continue;
 						c = 1;
 					}

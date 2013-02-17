@@ -1,0 +1,14 @@
+@namespace url("http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul");
+
+.b_title {
+	font:34px 'Times New Roman';
+}
+.n_title {
+	font:italic 12px sans-serif;
+}
+
+.xul_nosp {
+	padding: 0px;
+	margin:0 auto;
+	border: 0px;
+}

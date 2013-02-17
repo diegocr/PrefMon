@@ -1,0 +1,44 @@
+<?xml version="1.0"?>
+<?xml-stylesheet href="chrome://global/skin/" type="text/css"?>
+<?xml-stylesheet href="chrome://prefmon-ecleaner/content/ecleaner.css" type="text/css"?>
+<prefwindow
+	title="PrefMon's Advanced eCleaner" id="ecleaner"
+	buttons="extra1,cancel"
+	buttonlabelextra1="Remove Selected"
+	ondialogextra1="ecleaner.z()" xmlns:html="http://www.w3.org/1999/xhtml"
+	xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" onload="ecleaner.a()">
+	<script type="application/x-javascript" src="chrome://prefmon-ecleaner/content/ecleaner.js" />
+	<prefpane label="eCleaner">
+		<vbox>
+			<hbox align="center">
+				<spacer flex="1" width="150" />
+				<vbox>
+					<label id="ec_title" class="b_title"/>
+					<label value="Copyright (C)2013 Diego Casorran" class="n_title"/>
+				</vbox>
+				<image src="chrome://prefmon-ecleaner/content/ecleaner.png" width="64" height="64" />
+				<spacer width="8" />
+			</hbox>
+		</vbox>
+		<vbox>
+			<groupbox>
+				<menupopup id="contextmenu">
+					<menuitem class="menuitem-iconic" id="1" label="Go to Entry..."
+						image="chrome://prefmon-ecleaner/content/entry.png" oncommand="ecleaner.pop(event)"/>
+					<menuitem class="menuitem-iconic" id="2" label="Search at Google..."
+						image="chrome://prefmon-ecleaner/content/google.png" oncommand="ecleaner.pop(event)"/>
+				</menupopup>
+				<listbox rows="10" flex="1" seltype="multiple" id="extension_list" context="contextmenu" height="306">
+					<listhead>
+						<listheader label="Namespace"/>
+						<listheader label="Values"/>
+					</listhead>
+					<listcols>
+						<listcol flex="10"/>
+						<listcol flex="2"/>
+					</listcols>
+				</listbox>
+			</groupbox>
+		</vbox>
+	</prefpane>
+</prefwindow>
