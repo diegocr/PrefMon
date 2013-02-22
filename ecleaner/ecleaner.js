@@ -51,7 +51,7 @@ let ecleaner = {};
 		'urlclassifierkey3.txt','webapps','webappsstore.sqlite','bookmarks.html','cert_override.txt','chrome',
 		'chromeappsstore.sqlite','lightweighttheme-footer','lightweighttheme-header','localstore-safe.rdf',
 		'search-metadata.json','search.sqlite','urlclassifier3.sqlite','user.js','searchplugins','signons3.txt',
-		'history.dat','hostperm.1','lwtheme'
+		'history.dat','hostperm.1','lwtheme','addons.sqlite-journal','persdict.dat'
 	];
 	
 	function c(n,a,e) {

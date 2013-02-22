@@ -18,6 +18,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 	CS = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService),
 	WM = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator),
 	SP = {
+		cooliris: ["permissions.default.image"],
 		console2: ['extensions.consolefilter'],
 		'pdf.js.components': ['pdfjs.database'],
 		noscript: ['dom.max_chrome_script_run_time','dom.max_script_run_time']
