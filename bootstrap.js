@@ -174,6 +174,7 @@ let PrefMon = {
 					let eL = e.replace(/\s+/g,'').toLowerCase(), c;
 					if(!~dL.indexOf(eL + '.')
 					&& !~dL.indexOf(eL + '@')
+					&& !~dL.indexOf(eL.replace(/[^a-z]/g,'') + '.')
 					&& !~dL.indexOf(e.replace(/^([a-z]+)[A-Z_][a-z]+$/,'$1').toLowerCase() + '.')) {
 						if(!~(SP[e]||'').indexOf(dL) && (!SPR[e] || !SPR[e].test(dL)))
 							continue;

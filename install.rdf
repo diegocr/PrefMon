@@ -4,7 +4,7 @@
 		<em:id>{517f9e52-c795-4764-bf77-5e2db596cee6}</em:id>
 		<em:type>2</em:type>
 		<em:name>Preferences Monitor</em:name>
-		<em:version>3.0.1</em:version>
+		<em:version>3.0.2</em:version>
 		<em:creator>Diego Casorran &lt;dcasorran@gmail.com&gt;</em:creator>
 		<em:description>Track your Firefox's (about:config) preferences for unwanted changes.</em:description>
 		<em:bootstrap>true</em:bootstrap>
