@@ -38,6 +38,7 @@
 						<listcol flex="2"/>
 					</listcols>
 				</listbox>
+				<textbox placeholder="Filter" type="search" id="Filter" oncommand="ecleaner.f()"/>
 			</groupbox>
 		</vbox>
 	</prefpane>

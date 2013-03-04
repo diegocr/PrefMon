@@ -18,7 +18,7 @@ let ecleaner = {};
 	
 	let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components,
 		d = w.document, $ = d.getElementById.bind(d),
-		pkg = 'eCleaner v2.0';
+		pkg = 'eCleaner v2.1';
 	
 	Cu.import("resource://gre/modules/Services.jsm");
 	Cu.import("resource://gre/modules/AddonManager.jsm");
@@ -40,7 +40,7 @@ let ecleaner = {};
 		'view_source','pfs','webgl','hangmonitor','permissions','prefs','signon','device','offline-apps','jsloader',
 		'svg','geo','urlclassifier','prompts','slider','focusmanager','viewmanager','full-screen-api','converter',
 		'gestures','keyword','zoom','notification','startup','breakpad','alerts','advanced','application',
-		'xpinstall','clipboard','toolbar','signed','pref','print_printer','storage','datereporting','wap',
+		'xpinstall','clipboard','toolbar','signed','pref','print_printer','storage','datareporting','wap',
 		'memory_info_dumper','spellchecker'
 	];
 	let pReserved = [
@@ -69,14 +69,14 @@ let ecleaner = {};
 	
 	function add(b, g, n, e, i) {
 		g = {
-			label: g,
-			data: e || ''
+			label: decodeURIComponent(g),
+			data: e && JSON.stringify(e) || 'null'
 		};
 		if( i ) {
-			g.image = 'chrome://prefmon-ecleaner/content/'+i+'.png';
+			g.image = /^\w+$/.test(i) ? 'chrome://prefmon-ecleaner/content/'+i+'.png':i;
 			g.class = 'listcell-iconic';
 		}
-		b.appendChild(c('listitem',0,[c('listcell',g),c('listcell',{label:n})]))
+		return b.appendChild(c('listitem',0,[c('listcell',g),c('listcell',{label:n})]))
 	}
 	
 	function so(obj) {
@@ -100,7 +100,7 @@ let ecleaner = {};
 		let W = Window(),
 			B = W.gBrowser;
 		
-		let u = base + q;
+		let u = base + (q ? q : '');
 		if(new RegExp('^'+base).test(B.contentWindow.location.href)) {
 			W.loadURI(u);
 		} else {
@@ -116,19 +116,39 @@ let ecleaner = {};
 	let triggerNode;
 	ecleaner.pop = function(ev) {
 		let n = triggerNode.firstElementChild.label.split(':'),
-			ns = triggerNode.firstElementChild.getAttribute('data'),
-			pl = /^profile_/.test(triggerNode.parentNode.id);
-		n = encodeURIComponent((ns?(pl?'Mozilla Firefox Profile ':ns+'.'):'')+(n[1] || n[0]));
+			z = JSON.parse(triggerNode.firstElementChild.getAttribute('data')),
+			j = ({e:0,p:1,d:2})[triggerNode.parentNode.id[0]];
+		if( j < 2 ) {
+			n = encodeURIComponent((z?(j?'Mozilla Firefox Profile ':z+'.'):'')+(n[1] || n[0]));
+		} else {
+			n = encodeURIComponent(z.t);
+		}
 		switch(parseInt(ev.target.id)) {
 			case 1:
-				if(pl) {
-					try {
-						nf(ns).reveal();
-					} catch(e) {
-						x(d, e);
+				switch(j) {
+					case 2:
+						OpenURL(z.u);
+						break;
+					case 1:
+						try {
+							nf(z).reveal();
+						} catch(e) {
+							x(d, e);
+						}	break;
+					case 0: {
+						let p = Services.prefs,
+							k = 'general.warnOnAboutConfig',
+							v = p.getBoolPref(k);
+						
+						if(v) {
+							p.setBoolPref(k, !1);
+						}
+						OpenURL('about:config','?filter='+n);
+						
+						if(v) {
+							w.setTimeout(function() p.setBoolPref(k, !0), 900);
+						}
 					}
-				} else {
-					OpenURL('about:config','?filter='+n);
 				}
 				break;
 			case 2:
@@ -136,8 +156,86 @@ let ecleaner = {};
 		}
 	};
 	
+	let io = Services.io;
+	function newURI(u) io.newURI(u,null,null);
+	
+	let tld = Cc["@mozilla.org/network/effective-tld-service;1"].getService(Ci.nsIEffectiveTLDService),
+		fis = Cc["@mozilla.org/browser/favicon-service;1"].getService(Ci.nsIFaviconService);
+	function gf(u) {
+		u = newURI(u);
+		let i = fis.getFaviconImageForPage(u);
+		if(i.equals(fis.defaultFavicon)) {
+			i = fis.getFaviconImageForPage(newURI(u.prePath));
+			if(i.equals(fis.defaultFavicon)) {
+				if(!(/^[\d.]+$/.test(u.host))) {
+					i = fis.getFaviconImageForPage(newURI(u.scheme+'://'+tld.getBaseDomainFromHost(u.host)));
+				}
+				if(i.equals(fis.defaultFavicon)) {
+					/**
+					 * Generate favicon from url's hash
+					 * Inspired by Don Park's Identicon
+					 * Copyright (C)2013 Diego Casorran
+					 * [Made for eCleaner Fx Extension]
+					 */
+					let canvas = d.createElementNS("http://www.w3.org/1999/xhtml", "canvas"),
+						ctx = canvas.getContext("2d");
+					canvas.width = canvas.height = 16;
+					ctx.fillStyle = "#"+hash(u.prePath).toString(16);
+					ctx.beginPath();
+					ctx.arc(8, 8, 8, 0, Math.PI*2, !0);
+					ctx.closePath();
+					ctx.fill();
+					i = newURI(canvas.toDataURL("image/png"));
+				}
+			}
+		}
+		return i.spec;
+	}
+	
+	let tbl = [];
+	for (let i = 0; i < 256; ++i) {
+		let n = i << 8;
+		for (let j = 8; j > 0; --j)
+			n = n & 0x8000 ? (n << 1) ^ 0x1021 : n << 1;
+		tbl.push(n & 0xffff);
+	}
+	function hash(str) {
+		let h=0xfffe,
+			n=str.length;
+		while(n--)
+			h=tbl[((h>>8)^str.charCodeAt(n))&0xff]^((h<<8)&0xffff);
+		return (h << 7) ^ 0xfffffe;
+	}
+	
+	function flt() {
+		let v = $('Filter').value.toLowerCase(),
+			i = $('tabbox').selectedIndex;
+		
+		switch(i) {
+			case 0: i = 'extension'; break;
+			case 1: i = 'profile';   break;
+			case 2: i = 'downloads'; break;
+		}
+		
+		i = IterateList(i,null,function(n,l,d) {
+			l = '' + l + '~' + (d && d.u || '');
+			if(v && !~l.toLowerCase().indexOf(v)) {
+				n.parentNode.setAttribute('hidden', 'true');
+			} else {
+				if(n.parentNode.hasAttribute('hidden')) {
+					n.parentNode.removeAttribute('hidden');
+				}
+			}
+		});
+		i.scrollToIndex(i.getNumberOfVisibleRows()-1);
+		i.scrollToIndex(0);
+		// XXX: fixme..
+		i = i.ownerDocument.getAnonymousElementByAttribute(i,'rows','10');
+		i.style.overflow = v ? 'hidden' : 'auto';
+	}
+	
 	function ldr() {
-		let l = $('extension_list'), n, t,
+		let l = $('extension_list'), n, t, h,
 			p = Services.prefs.getBranch('');
 		
 		$('ec_title').value = pkg;
@@ -151,19 +249,24 @@ let ecleaner = {};
 		badge.textContent = 'PrefMon Edition';
 		d.documentElement.lastElementChild.appendChild(badge);
 		
-		t = c('tabbox',{flex:1,id:'tabbox'},[
+		t = c('tabbox',{flex:1,id:'tabbox',oncommand:"ecleaner.f()"},[
 			c('tabs',0,[
 				c('tab',{label:'  Extensions  '}),
-				c('tab',{label:'  Profile  '})
+				c('tab',{label:'  Profile  '}),
+				c('tab',{label:'  Downloads  '})
 			]),
 			c('tabpanels',{flex:1,class:'xul_nosp'},[
 				c('tabpanel',0,[  l.cloneNode(true)]),
-				c('tabpanel',0,[n=l.cloneNode(true)])
+				c('tabpanel',0,[n=l.cloneNode(true)]),
+				c('tabpanel',0,[h=l.cloneNode(true)])
 			])
 		]);
 		n.id = 'profile_list';
 		n.firstElementChild.firstElementChild.setAttribute('label','Entry');
 		n.firstElementChild.lastElementChild.setAttribute('label','Items');
+		h.id = 'downloads_list';
+		h.firstElementChild.firstElementChild.setAttribute('label','File');
+		h.firstElementChild.lastElementChild.setAttribute('label','Date');
 		l.parentNode.replaceChild(t,l);
 		l = $('extension_list');
 		w.sizeToContent();
@@ -227,20 +330,58 @@ let ecleaner = {};
 		} catch(ex) {
 			Services.console.logStringMessage(ex);
 		}
+		
+		w.setTimeout(function() {
+			
+			let nhs = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService),
+				hsq = nhs.getNewQuery(),
+				nso = nhs.getNewQueryOptions();
+			
+			nso.sortingMode = 3;
+			hsq.setTransitions([7],1);
+			let hqr = nhs.executeQuery(hsq, nso).root;
+			hqr.containerOpen = true;
+			
+			let l = $('downloads_list'),
+				n = hqr.childCount;
+			while(n--) {
+				let dl = hqr.getChild(n);
+				
+				add(l, dl.title, new Date(dl.time/1000).toISOString(),
+					{t:dl.title,u:dl.uri,d:dl.time}, gf(dl.uri))
+						.setAttribute('tooltiptext',decodeURIComponent(dl.uri));
+			}
+			hqr.containerOpen = false;
+			
+		}, 400);
+		
+		document.getElementById('Filter').focus();
 	};
 	
 	function IterateList(id,m,f) {
-		let l = $(id+'_list'), i, e = [], tc = 0;
-		while (i = l.getSelectedItem(0)) {
-			l.removeItemAt(l.getIndexOfItem(i));
+		let l = $(id+'_list'), n, i, e = [], tc = 0,
+			next = m ? (function() {
+				let i = l.getSelectedItem(0);
+				return i && l.removeItemAt(l.getIndexOfItem(i));
+			}) : (n = l.getRowCount(), function() {
+				return n-- && l.getItemAtIndex(n);
+			});
+		while ((i = next())) {
 			
 			try {
 				let n = i.firstElementChild;
-				let r = f(n,n.getAttribute('label'),n.getAttribute('data'));
+				let r = f(n,n.getAttribute('label'),JSON.parse(n.getAttribute('data')));
 				tc += r;
 			} catch(ex) {
 				e.push(ex.message);
 			}
+		}
+		
+		if(!m) {
+			if(e.length) {
+				Services.console.logStringMessage(pkg+'\n\n'+e.join("\n"));
+			}
+			return l;
 		}
 		
 		i = tc + ' '+m+'.\n\n';
@@ -252,10 +393,9 @@ let ecleaner = {};
 		Services.prompt.alert(w, pkg, i+"\n");
 	}
 	
-	ecleaner.a = function() {
-		ldr();
-	};
-	ecleaner.z = function () {
+	ecleaner.a = function() ldr();
+	ecleaner.f = function() flt();
+	ecleaner.z = function() {
 		switch($('tabbox').selectedIndex) {
 			case 0:
 				IterateList('extension','values cleared',function(n,l,d) {
@@ -284,6 +424,13 @@ let ecleaner = {};
 					return parseInt(n.nextElementSibling.label) || 1;
 				});
 				break;
+			case 2:
+				let nhs = Cc["@mozilla.org/browser/nav-history-service;1"]
+					.getService(Ci.nsINavHistoryService);
+				IterateList('downloads','downloads cleared',function(n,l,d) {
+					nhs.removePage(newURI(d.u));
+					return 1;
+				});
 		}
 	};
 })(window);
