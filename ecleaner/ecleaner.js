@@ -18,7 +18,7 @@ let ecleaner = {};
 	
 	let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components,
 		d = w.document, $ = d.getElementById.bind(d),
-		pkg = 'eCleaner v2.1';
+		pkg = 'eCleaner v2.3';
 	
 	Cu.import("resource://gre/modules/Services.jsm");
 	Cu.import("resource://gre/modules/AddonManager.jsm");
@@ -55,6 +55,9 @@ let ecleaner = {};
 		'history.dat','hostperm.1','lwtheme','addons.sqlite-journal','persdict.dat','.parentlock','.autoreg',
 		'webappsstore.sqlite-shm','webappsstore.sqlite-wal'
 	];
+	
+	let RDF = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService),
+		LS = Cc["@mozilla.org/rdf/datasource;1?name=local-store"].getService(Ci.nsIRDFDataSource);
 	
 	function c(n,a,e) {
 		if(!(n = d.createElement(n)))
@@ -117,11 +120,11 @@ let ecleaner = {};
 	ecleaner.pop = function(ev) {
 		let n = triggerNode.firstElementChild.label.split(':'),
 			z = JSON.parse(triggerNode.firstElementChild.getAttribute('data')),
-			j = ({e:0,p:1,d:2})[triggerNode.parentNode.id[0]];
+			j = ({e:0,p:1,d:2,l:3})[triggerNode.parentNode.id[0]];
 		if( j < 2 ) {
 			n = encodeURIComponent((z?(j?'Mozilla Firefox Profile ':z+'.'):'')+(n[1] || n[0]));
 		} else {
-			n = encodeURIComponent(z.t);
+			n = encodeURIComponent(j-2?n[0]:z.t);
 		}
 		switch(parseInt(ev.target.id)) {
 			case 1:
@@ -135,6 +138,7 @@ let ecleaner = {};
 						} catch(e) {
 							x(d, e);
 						}	break;
+					case 3:
 					case 0: {
 						let p = Services.prefs,
 							k = 'general.warnOnAboutConfig',
@@ -212,9 +216,10 @@ let ecleaner = {};
 			i = $('tabbox').selectedIndex;
 		
 		switch(i) {
-			case 0: i = 'extension'; break;
-			case 1: i = 'profile';   break;
-			case 2: i = 'downloads'; break;
+			case 0: i = 'extension';  break;
+			case 1: i = 'profile';    break;
+			case 2: i = 'downloads';  break;
+			case 3: i = 'localstore'; break;
 		}
 		
 		i = IterateList(i,null,function(n,l,d) {
@@ -234,8 +239,33 @@ let ecleaner = {};
 		i.style.overflow = v ? 'hidden' : 'auto';
 	}
 	
+	function lsf(u,cb) {
+		let R = RDF.GetResource(u),
+			P = LS.ArcLabelsOut(R),
+			C = 0;
+		
+		while(P.hasMoreElements()) {
+			let e = P.getNext();
+			if(e instanceof Ci.nsIRDFResource) {
+				e.QueryInterface(Ci.nsIRDFResource);
+				// let n = LS.GetTarget(R,e,!0);
+				// LS.Unassert(R,e,n);
+				let n = LS.GetTargets(R,e,!0);
+				while(n.hasMoreElements()) {
+					let i = n.getNext();
+					if(i instanceof Ci.nsIRDFNode) {
+						i.QueryInterface(Ci.nsIRDFNode);
+						if(cb)cb(R,e,i);
+						C++;
+					}
+				}
+			}
+		}
+		return C;
+	}
+	
 	function ldr() {
-		let l = $('extension_list'), n, t, h,
+		let l = $('extension_list'), n,t,h,s,
 			p = Services.prefs.getBranch('');
 		
 		$('ec_title').value = pkg;
@@ -253,12 +283,14 @@ let ecleaner = {};
 			c('tabs',0,[
 				c('tab',{label:'  Extensions  '}),
 				c('tab',{label:'  Profile  '}),
-				c('tab',{label:'  Downloads  '})
+				c('tab',{label:'  Downloads  '}),
+				c('tab',{label:'  LocalStore  '})
 			]),
 			c('tabpanels',{flex:1,class:'xul_nosp'},[
 				c('tabpanel',0,[  l.cloneNode(true)]),
 				c('tabpanel',0,[n=l.cloneNode(true)]),
-				c('tabpanel',0,[h=l.cloneNode(true)])
+				c('tabpanel',0,[h=l.cloneNode(true)]),
+				c('tabpanel',0,[s=l.cloneNode(true)])
 			])
 		]);
 		n.id = 'profile_list';
@@ -267,6 +299,9 @@ let ecleaner = {};
 		h.id = 'downloads_list';
 		h.firstElementChild.firstElementChild.setAttribute('label','File');
 		h.firstElementChild.lastElementChild.setAttribute('label','Date');
+		s.id = 'localstore_list';
+		s.firstElementChild.firstElementChild.setAttribute('label','Resource');
+		s.firstElementChild.lastElementChild.setAttribute('label','Nodes');
 		l.parentNode.replaceChild(t,l);
 		l = $('extension_list');
 		w.sizeToContent();
@@ -355,6 +390,53 @@ let ecleaner = {};
 			
 		}, 400);
 		
+		w.setTimeout(function(){
+			
+			let R = LS.GetAllResources(),
+				l = $('localstore_list'),
+				x = {};
+			while(R.hasMoreElements()) {
+				let e = R.getNext();
+				if(e instanceof Ci.nsIRDFResource) {
+					e.QueryInterface(Ci.nsIRDFResource);
+					
+					let v = e.Value,u=v,
+						p = u.indexOf('://') + 1;
+					
+					if(0 === p) {
+						u = u.split(/[?#]/).shift();
+					} else {
+						while(u.charAt(p) == '/')++p;
+						u = u.substr(p,u.indexOf('/',p)-p);
+						
+						if(~['global','mozapps','browser','components','modules','gre','app'].indexOf(u)) {
+							u = v;
+							if(!~u.indexOf('#'))
+								continue;
+							u = 'UI[#' + u.split('#').pop() + ']';
+						}
+					}
+					
+					if(u.length > 40)
+						u = u.substr(0,40) + '...';
+					
+					if(!(u in x)) {
+						
+						x[u] = {c: 0, d: []};
+					}
+					x[u].c += lsf(v);
+					x[u].d.push( v );
+				}
+			}
+			
+			x = so(x);
+			for(let e in x) {
+				
+				add(l, e, x[e].c, x[e].d).setAttribute('tooltiptext',x[e].d.join("\n"));
+			}
+			
+		}, 123);
+		
 		document.getElementById('Filter').focus();
 	};
 	
@@ -431,6 +513,14 @@ let ecleaner = {};
 					nhs.removePage(newURI(d.u));
 					return 1;
 				});
+				break;
+			case 3: {
+				IterateList('localstore','nodes removed',function(n,l,d) {
+					let c = 0, f = LS.Unassert.bind(LS);
+					d.forEach(function(u)c += lsf(u,f));
+					return c;
+				});
+			}	break;
 		}
 	};
 })(window);

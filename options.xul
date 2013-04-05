@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<setting pref="extensions.preferencesmonitor.nonboxfor" type="string" title="Ignore Changes On:">
+		Prevent the NotificationBox from being shown for changed preferences matching with this RegExp Pattern.
+	</setting>
+	<setting title="" type="control">
+		<button label="Launch eCleaner" oncommand="Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator).getMostRecentWindow('navigator:browser').openDialog('chrome://prefmon-ecleaner/content/ecleaner.xul','prefmon-ecleaner','chrome,titlebar,toolbar,centerscreen')"/>
+	</setting>
+</vbox>

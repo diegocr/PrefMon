@@ -145,7 +145,7 @@ let PrefMon = {
 				while(sN.charAt(p) == '/')++p;
 				ext = sN.substr(p,sN.indexOf('/',p)-p);
 				
-				if(~['global','mozapps','browser','components','modules','gre','services-common','services-sync'].indexOf(ext) || /^about:/.test(sN)) {
+				if(~['global','mozapps','browser','components','modules','gre','app','services-common','services-sync'].indexOf(ext) || /^about:/.test(sN)) {
 					this.log('Permitted change by `'+(ext||sN)+'´ for "'+d+'"');
 					updV(d,nV);
 					break;
@@ -224,6 +224,14 @@ let PrefMon = {
 				}
 				if(++this.pan[d] > 3)
 					break;
+				
+				let j = this.prefs['extensions.preferencesmonitor.nonboxfor'];
+				if(j) try {
+					if(new RegExp(j).test(dL))
+						break;
+				} catch(e) {
+					Cu.reportError(e);
+				}
 				
 				let n = b.getNotificationBox(), bn = "More Info", pn;
 				if((pn = n.getNotificationWithValue(nn))) {
