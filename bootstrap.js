@@ -16,6 +16,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 	OS = Cc['@mozilla.org/observer-service;1'].getService(Ci.nsIObserverService),
 	PS = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService),
 	CS = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService),
+	PR = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService),
 	WM = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator),
 	SP = {
 		cooliris: ["permissions.default.image"],
@@ -24,7 +25,8 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		noscript: ['dom.max_chrome_script_run_time','dom.max_script_run_time']
 	},
 	SPR = {
-		'prefmon-ecleaner': /./,
+		'Preferences Monitor': /./, // XXX..
+		'prefmon-ecleaner': /./,   // XXX..
 		'chatzilla': /^extensions\.irc\./,
 		'wot': /^weboftrust\./
 	};
@@ -65,7 +67,23 @@ let PrefMon = {
 		return null;
 	},
 	
-	c: function(window,nn) {
+	s: function(n,v) {
+		switch(PS.getPrefType(n)) {
+			case Ci.nsIPrefBranch.PREF_STRING:
+				let ss = Ci.nsISupportsString,
+					t = Cc["@mozilla.org/supports-string;1"] .createInstance(ss);
+				t.data = v;
+				return PS.setComplexValue(n,ss,t);
+			case Ci.nsIPrefBranch.PREF_INT:
+				return PS.setIntPref(n,v);
+			case Ci.nsIPrefBranch.PREF_BOOL:
+				return PS.setBoolPref(n,v);
+			default:break;
+		}
+		return null;
+	},
+	
+	c: function(window,nn,k,v) {
 		return function() {
 			let wnd = WM.getMostRecentWindow('global:console');
 			
@@ -75,6 +93,14 @@ let PrefMon = {
 				wnd = window.openDialog("chrome://global/content/console.xul",nn,'centerscreen,resizable');
 				wnd.addEventListener("load", function() {
 					let w = this;
+					if(k) {
+						w.addEventListener('unload',function(){
+							w.removeEventListener("unload", arguments.callee, false);
+							if(!PR.confirmEx(null,nn,'Do you want to revert the change?',1027,'','','',null,{value:!1})) {
+								PrefMon.s(k,v);
+							}
+						},false)
+					}
 					w.removeEventListener("load", arguments.callee, false);
 					w.setTimeout(function(){
 						if(w.gFilter) {
@@ -105,6 +131,10 @@ let PrefMon = {
 			}
 			wnd = window = null;
 		};
+	},
+	
+	r: function(p,v) {
+		return function() PrefMon.s(p,v);
 	},
 	
 	observe: function(s, t, d) {
@@ -217,12 +247,23 @@ let PrefMon = {
 				sE.init(MsgExt,sN,String(lN),lN,null,Ci.nsIScriptError.errorFlag,'chrome javascript');
 				CS.logMessage(sE);
 				
+				let l = this.prefs['extensions.preferencesmonitor.revon'];
+				if(l) try {
+					if(new RegExp(l).test(dL)) {
+						this.s(d,oV);
+						break;
+					}
+				} catch(e) {
+					Cu.reportError(e);
+				}
+				
 				if(!b)break;
+				let k = this.prefs['extensions.preferencesmonitor.revask'];
 				
 				if(!(d in this.pan)) {
 					this.pan[d] = 0;
 				}
-				if(++this.pan[d] > 3)
+				if(++this.pan[d] > 3 && !k)
 					break;
 				
 				let j = this.prefs['extensions.preferencesmonitor.nonboxfor'];
@@ -234,13 +275,17 @@ let PrefMon = {
 				}
 				
 				let n = b.getNotificationBox(), bn = "More Info", pn;
-				if((pn = n.getNotificationWithValue(nn))) {
+				if(!k && (pn = n.getNotificationWithValue(nn))) {
 					n.removeNotification(pn);
 					bn += '*';
 				}
-				n.appendNotification(nn+': '+Msg,nn,"chrome://global/skin/icons/warning-16.png",n.PRIORITY_WARNING_MEDIUM, [
-					{label:bn,accessKey:"I",callback:this.c(b.browsers[0].contentWindow,nn)}
-				]);
+				
+				let nb = [];
+				if(k) {
+					nb.push({label:'Revert Change',accessKey:"R",callback:this.r(d,oV)});
+				}
+				nb.push({label:bn,accessKey:"I",callback:this.c(b.browsers[0].contentWindow,nn,k?d:0,oV)});
+				n.appendNotification(nn+': '+Msg,nn,"chrome://global/skin/icons/warning-16.png",n.PRIORITY_WARNING_MEDIUM,nb);
 				
 			}	break;
 			
@@ -258,6 +303,11 @@ function startup(aData, aReason) {
 			
 			if("nsIPrefBranch2" in Ci)
 				PS.QueryInterface(Ci.nsIPrefBranch2);
+			
+			if(!PS.getPrefType('extensions.preferencesmonitor.revon')) {
+				PS.setCharPref('extensions.preferencesmonitor.revon',
+					'^(browser\\.(startup|newtab)|general\\.useragent|keyword)\\.');
+			}
 			
 			for each(let o in PS.getChildList("", {value: 0})) {
 				this.prefs[o] = this.p(o);
