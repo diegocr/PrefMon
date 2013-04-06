@@ -26,10 +26,15 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 	},
 	SPR = {
 		'Preferences Monitor': /./, // XXX..
-		'prefmon-ecleaner': /./,   // XXX..
-		'chatzilla': /^extensions\.irc\./,
-		'wot': /^weboftrust\./
-	};
+		'prefmon-ecleaner': /./    // XXX..
+	},
+	BR = 'extensions.preferencesmonitor.',
+	TP = [
+		BR + 'revon',
+		BR + 'revask',
+		BR + 'nonboxfor',
+		BR + 'nonboxbyex',
+	];
 
 Cu.import('resource://gre/modules/AddonManager.jsm');
 
@@ -137,6 +142,17 @@ let PrefMon = {
 		return function() PrefMon.s(p,v);
 	},
 	
+	j: function(v) {
+		(''+v).split(';').forEach(function(p) {
+			p = p.split(':').map(String.trim);
+			if(p.length == 2) try {
+				SPR[p[0]] = new RegExp(p[1]);
+			} catch(e) {
+				Cu.reportError(e);
+			}
+		});
+	},
+	
 	observe: function(s, t, d) {
 		switch(t) {
 			case 'nsPref:changed': {
@@ -148,6 +164,10 @@ let PrefMon = {
 				let c = Components.stack.caller,sN,lN,p,ext,ext2,ext3,sNo = null, self = this,
 					updV = function(k,v) self.prefs[k] = v, nV = this.p(d),
 					oV = (d in this.prefs ? this.prefs[d] : null), stack = [], eN;
+				
+				if(d === TP[3]) {
+					this.j(nV);
+				}
 				
 				if(c == null) {
 					this.log('ERROR: Stack unavailable, changed preference: `'+d+'´ FROM `'+oV+'´ TO `'+nV+'´');
@@ -247,7 +267,7 @@ let PrefMon = {
 				sE.init(MsgExt,sN,String(lN),lN,null,Ci.nsIScriptError.errorFlag,'chrome javascript');
 				CS.logMessage(sE);
 				
-				let l = this.prefs['extensions.preferencesmonitor.revon'];
+				let l = this.prefs[TP[0]];
 				if(l) try {
 					if(new RegExp(l).test(dL)) {
 						this.s(d,oV);
@@ -258,7 +278,7 @@ let PrefMon = {
 				}
 				
 				if(!b)break;
-				let k = this.prefs['extensions.preferencesmonitor.revask'];
+				let k = this.prefs[TP[1]];
 				
 				if(!(d in this.pan)) {
 					this.pan[d] = 0;
@@ -266,7 +286,7 @@ let PrefMon = {
 				if(++this.pan[d] > 3 && !k)
 					break;
 				
-				let j = this.prefs['extensions.preferencesmonitor.nonboxfor'];
+				let j = this.prefs[TP[2]];
 				if(j) try {
 					if(new RegExp(j).test(dL))
 						break;
@@ -304,10 +324,13 @@ function startup(aData, aReason) {
 			if("nsIPrefBranch2" in Ci)
 				PS.QueryInterface(Ci.nsIPrefBranch2);
 			
-			if(!PS.getPrefType('extensions.preferencesmonitor.revon')) {
-				PS.setCharPref('extensions.preferencesmonitor.revon',
-					'^(browser\\.(startup|newtab)|general\\.useragent|keyword)\\.');
+			if(!PS.getPrefType(TP[0])) {
+				PS.setCharPref(TP[0],'^(browser\\.(startup|newtab)|general\\.useragent|keyword)\\.');
 			}
+			if(!PS.getPrefType(TP[3])) {
+				PS.setCharPref(TP[3],'chatzilla:^extensions\\.irc\\.;wot:^weboftrust\\.');
+			}
+			PrefMon.j(PS.getCharPref(TP[3]));
 			
 			for each(let o in PS.getChildList("", {value: 0})) {
 				this.prefs[o] = this.p(o);

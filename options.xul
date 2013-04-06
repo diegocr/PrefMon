@@ -3,6 +3,9 @@
 	<setting pref="extensions.preferencesmonitor.nonboxfor" type="string" title="Ignore Changes On:">
 		Prevent the NotificationBox from being shown for changed preferences matching with this RegExp Pattern.
 	</setting>
+	<setting pref="extensions.preferencesmonitor.nonboxbyex" type="string" title="Ignore By Add-On:">
+		This is the internal whitelist of changed preferences being reported as "controlled"
+	</setting>
 	<setting pref="extensions.preferencesmonitor.revask" type="bool" title="Ask to Revert Changes:">
 		An additional button will appear on the NotificationBox which you can click to revert the change.
 	</setting>
