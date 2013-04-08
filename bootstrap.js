@@ -56,7 +56,7 @@ let PrefMon = {
 	
 	onEnabled: function(a) this.adb[a.id.toLowerCase()] = a.name,
 	onInstalled: function(a) this.adb[a.id.toLowerCase()] = a.name,
-	gN: function(id) (id = id.toLowerCase(), id in this.adb && this.adb[id] || null),
+	gN: function(id) this.adb[id.toLowerCase()],
 	sM: function(s,p) (let (x = s.match(p)) x && x[1]),
 	
 	p: function(n) {
@@ -186,7 +186,20 @@ let PrefMon = {
 					break;
 				}
 				
-				if((p = sN.lastIndexOf(' -> ')) != -1) {
+				p = sN;
+				while(~(p||'').split(' -> ').pop().indexOf('jetpack/addon-sdk/') && (c=c && c.caller)) {
+					do {
+						p = c.filename;
+						eN = c.lineNumber;
+					} while(p === null && (c = c.caller));
+				}
+				
+				if(eN) {
+					sN = p;
+					lN = eN;
+				}
+				
+				if(~(p = sN.lastIndexOf(' -> '))) {
 					sNo = sN;
 					sN = sN.substr(p+4);
 				}
@@ -243,10 +256,10 @@ let PrefMon = {
 				
 				c = Components.stack;
 				while((c = c.caller)) {
-					if(c.filename || stack.length)
-						// stack.push('@' + c.filename + ':' + c.lineNumber);
-						stack.push(('^ ' + c).replace(/\s[^\s]+ -> /g,' ')
+					if(c.filename || stack.length) {
+						stack.push(('^ ' + c).replace(/\s[^\s]+ ->/g,'')
 							.replace(/\s(jar:)?file:.*?\/extensions\//,' Resource://'));
+					}
 				}
 				
 				let _ = function(v) {
@@ -341,7 +354,7 @@ function startup(aData, aReason) {
 	
 	AddonManager.addAddonListener(PrefMon);
 	AddonManager.getAddonsByTypes(['extension'],function(addons) {
-		addons.forEach(function(addon) PrefMon.adb[addon.id] = addon.name);
+		addons.forEach(function(addon) PrefMon.adb[addon.id.toLowerCase()] = addon.name);
 	});
 }
 
