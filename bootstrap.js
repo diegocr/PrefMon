@@ -338,7 +338,8 @@ function startup(aData, aReason) {
 				PS.QueryInterface(Ci.nsIPrefBranch2);
 			
 			if(!PS.getPrefType(TP[0])) {
-				PS.setCharPref(TP[0],'^(browser\\.(startup|newtab)|general\\.useragent|keyword)\\.');
+				PS.setCharPref(TP[0],'^((browser\\.(startup|newtab)|general\\.useragent|keyword)\\.'
+					+ '|extensions\\.(autoDisableScopes|enabledScopes))');
 			}
 			if(!PS.getPrefType(TP[3])) {
 				PS.setCharPref(TP[3],'chatzilla:^extensions\\.irc\\.;wot:^weboftrust\\.');

@@ -41,7 +41,7 @@ let ecleaner = {};
 		'svg','geo','urlclassifier','prompts','slider','focusmanager','viewmanager','full-screen-api','converter',
 		'gestures','keyword','zoom','notification','startup','breakpad','alerts','advanced','application',
 		'xpinstall','clipboard','toolbar','signed','pref','print_printer','storage','datareporting','wap',
-		'memory_info_dumper','spellchecker'
+		'memory_info_dumper','spellchecker','gl','plain_text'
 	];
 	let pReserved = [
 		'addons.sqlite','blocklist.xml','bookmarkbackups','cert8.db','compatibility.ini','content-prefs.sqlite',
@@ -51,7 +51,7 @@ let ecleaner = {};
 		'pluginreg.dat','prefs.js','search.json','secmod.db','sessionstore.bak','sessionstore.js','signons.sqlite',
 		'urlclassifierkey3.txt','webapps','webappsstore.sqlite','bookmarks.html','cert_override.txt','chrome',
 		'chromeappsstore.sqlite','lightweighttheme-footer','lightweighttheme-header','localstore-safe.rdf',
-		'search-metadata.json','search.sqlite','urlclassifier3.sqlite','user.js','searchplugins','signons3.txt',
+		'search-metadata.json','search.sqlite','urlclassifier3.sqlite','searchplugins','signons3.txt',
 		'history.dat','hostperm.1','lwtheme','addons.sqlite-journal','persdict.dat','.parentlock','.autoreg',
 		'webappsstore.sqlite-shm','webappsstore.sqlite-wal'
 	];
