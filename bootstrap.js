@@ -34,6 +34,7 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		BR + 'revask',
 		BR + 'nonboxfor',
 		BR + 'nonboxbyex',
+		BR + 'revonstrg'
 	];
 
 Cu.import('resource://gre/modules/AddonManager.jsm');
@@ -153,6 +154,78 @@ let PrefMon = {
 		});
 	},
 	
+	n: function() {
+		sTimer = null;
+		let p = this.p(TP[0]);
+		if(!p) {
+			this.s(TP[4],'');
+			return;
+		}
+		
+		try {
+			p = new RegExp(p);
+		} catch(e) {
+			Cu.reportError(e);
+			return;
+		}
+		
+		let o = {};
+		for(let [k,v] in Iterator(this.prefs)) {
+			
+			if(p.test(k)) {
+				
+				o[k] = v;
+			}
+		}
+		this.s(TP[4],Object.keys(o).length ? JSON.stringify(o) : '');
+	},
+	
+	m: function() {
+		sTimer = null;
+		
+		let o,p;
+		try {
+			o = JSON.parse(p=this.p(TP[4]));
+		} catch(e) {
+			if(p) {
+				Cu.reportError(e);
+			}
+			return;
+		}
+		
+		for(let [k,v] in Iterator(this.prefs)) {
+			
+			if(k in o && v !== o[k]) {
+				
+				this.s(k,o[k]);
+				
+				this.log('REVERTED CHANGE: `'+k+'´ FROM `'+v+'´ TO `'+o[k]+'´');
+				
+				try {
+					Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService)
+						.showAlertNotification(__SCRIPT_URI_SPEC__+'/../icon.png',
+						'Reverted Change...','...on ' + k,false,"",null);
+				} catch(e) {}
+			}
+		}
+	},
+	
+	u: function(k,v,j) {
+		this.prefs[k] = v;
+		let l = !j && this.prefs[TP[0]];
+		if(l) try {
+			if(new RegExp(l,'i').test(k)) {
+				
+				let p = this.prefs[TP[4]],
+					o = p && JSON.parse(p) || {};
+				o[k] = v;
+				this.s(TP[4],this.prefs[TP[4]] = JSON.stringify(o));
+			}
+		} catch(e) {
+			Cu.reportError(e);
+		}
+	},
+	
 	observe: function(s, t, d) {
 		switch(t) {
 			case 'nsPref:changed': {
@@ -161,17 +234,24 @@ let PrefMon = {
 					this.log('WARNING: Unable to obtain navigator:browser (NotificationBox Unavailable)');
 				}
 				
-				let c = Components.stack.caller,sN,lN,p,ext,ext2,ext3,sNo = null, self = this,
-					updV = function(k,v) self.prefs[k] = v, nV = this.p(d),
+				let c = Components.stack.caller,sN,lN,p,ext,ext2,ext3,sNo = null,nV=this.p(d),
 					oV = (d in this.prefs ? this.prefs[d] : null), stack = [], eN;
 				
-				if(d === TP[3]) {
-					this.j(nV);
+				switch(d) {
+					case TP[3]:
+						this.j(nV);
+						break;
+					case TP[0]:
+						if(sTimer)
+							sTimer.cancel();
+						setTimeout(this.n.bind(this),1815);
+					default:
+						break;
 				}
 				
 				if(c == null) {
 					this.log('ERROR: Stack unavailable, changed preference: `'+d+'´ FROM `'+oV+'´ TO `'+nV+'´');
-					updV(d,nV);
+					this.u(d,nV);
 					break;
 				}
 				
@@ -182,7 +262,7 @@ let PrefMon = {
 				
 				if(sN == null) {
 					this.log('ERROR: Unable to obtain caller, changed preference: `'+d+'´ FROM `'+oV+'´ TO `'+nV+'´');
-					updV(d,nV);
+					this.u(d,nV);
 					break;
 				}
 				
@@ -210,7 +290,7 @@ let PrefMon = {
 				
 				if(~['global','mozapps','browser','components','modules','gre','app','services-common','services-sync'].indexOf(ext) || /^about:/.test(sN)) {
 					this.log('Permitted change by `'+(ext||sN)+'´ for "'+d+'"');
-					updV(d,nV);
+					this.u(d,nV);
 					break;
 				}
 				
@@ -244,7 +324,7 @@ let PrefMon = {
 						c = 1;
 					}
 					this.log('Permitted '+(c?'controlled':'self-made')+' change by `'+eN+'´ for "'+d+'"');
-					updV(d,nV);
+					this.u(d,nV);
 					return;
 				}
 				
@@ -252,7 +332,7 @@ let PrefMon = {
 					this.log('VOID change by `'+eN+'´ for "'+d+'" -> ('+nV+')');
 					break;
 				}
-				updV(d,nV);
+				this.u(d,nV,!0);
 				
 				c = Components.stack;
 				while((c = c.caller)) {
@@ -284,6 +364,7 @@ let PrefMon = {
 				if(l) try {
 					if(new RegExp(l).test(dL)) {
 						this.s(d,oV);
+						this.log('REVERTED CHANGE: `'+d+'´ FROM `'+nV+'´ TO `'+oV+'´');
 						break;
 					}
 				} catch(e) {
@@ -328,30 +409,41 @@ let PrefMon = {
 };
 
 let sTimer;
+function setTimeout(f,n) {
+	let i = Ci.nsITimer,
+		t = Cc["@mozilla.org/timer;1"].createInstance(i);
+	t.initWithCallback({notify:f},n||30,i.TYPE_ONE_SHOT);
+	return sTimer = t;
+}
 function startup(aData, aReason) {
-	let i = Ci.nsITimer;
-	(sTimer = Cc["@mozilla.org/timer;1"].createInstance(i))
-		.initWithCallback({notify:(function() {
-			sTimer = null;
-			
-			if("nsIPrefBranch2" in Ci)
-				PS.QueryInterface(Ci.nsIPrefBranch2);
-			
-			if(!PS.getPrefType(TP[0])) {
-				PS.setCharPref(TP[0],'^((browser\\.(startup|newtab)|general\\.useragent|keyword)\\.'
-					+ '|extensions\\.(autoDisableScopes|enabledScopes))');
-			}
-			if(!PS.getPrefType(TP[3])) {
-				PS.setCharPref(TP[3],'chatzilla:^extensions\\.irc\\.;wot:^weboftrust\\.');
-			}
-			PrefMon.j(PS.getCharPref(TP[3]));
-			
-			for each(let o in PS.getChildList("", {value: 0})) {
-				this.prefs[o] = this.p(o);
-			}
-			
-			PS.addObserver("", this, false);
-		}).bind(PrefMon)},1942,i.TYPE_ONE_SHOT);
+	setTimeout(function() {
+		sTimer = null;
+		
+		if("nsIPrefBranch2" in Ci)
+			PS.QueryInterface(Ci.nsIPrefBranch2);
+		
+		if(!PS.getPrefType(TP[0])) {
+			PS.setCharPref(TP[0],'^((browser\\.(startup|newtab)|general\\.useragent|keyword)\\.'
+				+ '|extensions\\.(autoDisableScopes|enabledScopes))');
+		}
+		if(!PS.getPrefType(TP[3])) {
+			PS.setCharPref(TP[3],'chatzilla:^extensions\\.irc\\.;wot:^weboftrust\\.');
+		}
+		PrefMon.j(PS.getCharPref(TP[3]));
+		
+		for each(let o in PS.getChildList("", {value: 0})) {
+			this.prefs[o] = this.p(o);
+		}
+		
+		if(!PS.getPrefType(TP[4])) {
+			PS.setCharPref(TP[4],'');
+			setTimeout(this.n.bind(this),1492);
+		} else {
+			setTimeout(this.m.bind(this),1815);
+		}
+		
+		PS.addObserver("", this, false);
+	}.bind(PrefMon),1942);
 	
 	AddonManager.addAddonListener(PrefMon);
 	AddonManager.getAddonsByTypes(['extension'],function(addons) {
