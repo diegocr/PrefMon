@@ -41,7 +41,7 @@ let ecleaner = {};
 		'svg','geo','urlclassifier','prompts','slider','focusmanager','viewmanager','full-screen-api','converter',
 		'gestures','keyword','zoom','notification','startup','breakpad','alerts','advanced','application',
 		'xpinstall','clipboard','toolbar','signed','pref','print_printer','storage','datareporting','wap',
-		'memory_info_dumper','spellchecker','gl','plain_text'
+		'memory_info_dumper','spellchecker','gl','plain_text','canvas'
 	];
 	let pReserved = [
 		'addons.sqlite','blocklist.xml','bookmarkbackups','cert8.db','compatibility.ini','content-prefs.sqlite',
