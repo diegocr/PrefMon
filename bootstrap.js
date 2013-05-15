@@ -28,6 +28,10 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		'Preferences Monitor': /./, // XXX..
 		'prefmon-ecleaner': /./    // XXX..
 	},
+	PPR = [
+		'browser.startup.homepage_override.buildID',
+		'browser.startup.homepage_override.mstone'
+	],
 	BR = 'extensions.preferencesmonitor.',
 	TP = [
 		BR + 'revon',
@@ -195,7 +199,7 @@ let PrefMon = {
 		
 		for(let [k,v] in Iterator(this.prefs)) {
 			
-			if(k in o && v !== o[k]) {
+			if(k in o && v !== o[k] && !~PPR.indexOf(k)) {
 				
 				this.s(k,o[k]);
 				
