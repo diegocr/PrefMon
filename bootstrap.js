@@ -7,7 +7,7 @@
  * The Original Code is Preferences Monitor Mozilla Extension.
  * 
  * The Initial Developer of the Original Code is
- * Copyright (C)2012 Diego Casorran <dcasorran@gmail.com>
+ * Copyright (C)2013 Diego Casorran <dcasorran@gmail.com>
  * All Rights Reserved.
  * 
  * ***** END LICENSE BLOCK ***** */
@@ -38,16 +38,21 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		BR + 'revask',
 		BR + 'nonboxfor',
 		BR + 'nonboxbyex',
-		BR + 'revonstrg'
+		BR + 'revonstrg',
+		BR + 'ltf'
 	];
 
 Cu.import('resource://gre/modules/AddonManager.jsm');
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 let PrefMon = {
 	prefs: {},
 	pan: {},
 	adb: {},
 	llm: [],
+	ilf: !1,
+	dlf: [],
 	
 	log: function(m) {
 		// dump('Preferences Monitor :: '+ m + "\n");
@@ -230,6 +235,97 @@ let PrefMon = {
 		}
 	},
 	
+	wil: function(c) {
+		let x = 80, s = [];
+		c = c || '-';
+		while(x--)
+			s.push(c);
+		return s.join("");
+	},
+	lfa: function() {
+		return ['['+(new Date().toISOString())+']'];
+	},
+	wlf: function(r) {
+		if(r) {
+			let m = this.lfa();
+			if(r == APP_SHUTDOWN) {
+				m.push('Application shutting down.');
+			} else {
+				m.push('PrefMon being disabled/uninstalled.');
+			}
+			this.dlf.push(this.wil());
+			this.dlf.push(m.join(" "));
+			this.dlf.push("-\n");
+		}
+		let data = this.dlf.join("\r\n");
+		this.dlf = [];
+		
+		let s = Cc["@mozilla.org/network/file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
+		s.init(this.lfn, 0x02 | 0x10, parseInt("0755",8), 0);
+		let c = Cc["@mozilla.org/intl/converter-output-stream;1"].createInstance(Ci.nsIConverterOutputStream);
+		c.init(s, "UTF-8", 0, 0);
+		c.writeString(data);
+		c.close();
+	},
+	elf: function(e) {
+		let msg = [this.wil()],
+			tmp = this.lfa();
+		tmp.push(e.errorMessage || e.message);
+		msg.push(tmp.join(" "));
+		for(let i in e) {
+			if(i != 'message'
+			&& i != 'errorMessage'
+			&& i.substr(-4) != 'Flag'
+			&& i != 'timeStamp'
+			&& e[i] && typeof e[i] !== 'function')
+			{
+				msg.push(i + ': ' + e[i]);
+			}
+		}
+		this.dlf.push(msg.join("\r\n"));
+		if(this.dlf.length == 20) {
+			this.roi(this.wlf);
+		}
+	},
+	slf: function() {
+		if(!this.ilf) {
+			
+			this.lfn = Services.dirsvc.get("ProfD", Ci.nsIFile);
+			this.lfn.append("prefmon-console.txt");
+			
+			if(!this.lfn.exists()) {
+				
+				this.lfn.create(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0755",8));
+			}
+			
+			this.dlf = [];
+			this.dlf.push(this.wil('#'));
+			
+			let tmp = ['['+(new Date().toISOString().split('.').shift())+']'];
+			['vendor','name','version','appBuildID',
+			'OS','XPCOMABI','widgetToolkit','lastRunCrashID']
+				.forEach(function(n) tmp.push(Services.appinfo[n]));
+			
+			this.dlf.push(tmp.join(" "))
+			
+			CS.registerListener(this, true);
+			this.ilf = !0;
+		}
+	},
+	clf: function(r) {
+		if(this.ilf) {
+			
+			this.wlf(r);
+			CS.unregisterListener(this);
+			this.ilf = !1;
+		}
+	},
+	
+	roi: function(c) {
+		Cc["@mozilla.org/thread-manager;1"].getService().currentThread
+			.dispatch({run:c.bind(this)},Ci.nsIEventTarget.DISPATCH_NORMAL);
+	},
+	
 	observe: function(s, t, d) {
 		switch(t) {
 			case 'nsPref:changed': {
@@ -244,6 +340,13 @@ let PrefMon = {
 				switch(d) {
 					case TP[3]:
 						this.j(nV);
+						break;
+					case TP[5]:
+						if(d) {
+							this.slf();
+						} else {
+							this.clf(ADDON_DISABLE);
+						}
 						break;
 					case TP[0]:
 						if(sTimer)
@@ -407,9 +510,24 @@ let PrefMon = {
 				
 			}	break;
 			
-			default:break;
+			default:
+				if("QueryInterface" in s) {
+					
+					if(s instanceof Ci.nsIScriptError) {
+						
+						s = s.QueryInterface(Ci.nsIScriptError);
+					}
+				}
+				
+				if("category" in s && s.flags < this.prefs[TP[5]]) {
+					
+					this.elf(s);
+				}
+				break;
 		}
-	}
+	},
+	
+	QueryInterface: XPCOMUtils.generateQI(Ci.nsIConsoleListener)
 };
 
 let sTimer;
@@ -422,9 +540,6 @@ function setTimeout(f,n) {
 function startup(aData, aReason) {
 	setTimeout(function() {
 		sTimer = null;
-		
-		if("nsIPrefBranch2" in Ci)
-			PS.QueryInterface(Ci.nsIPrefBranch2);
 		
 		if(!PS.getPrefType(TP[0])) {
 			PS.setCharPref(TP[0],'^((browser\\.(startup|newtab)|general\\.useragent|keyword)\\.'
@@ -449,6 +564,16 @@ function startup(aData, aReason) {
 		PS.addObserver("", this, false);
 	}.bind(PrefMon),1942);
 	
+	if("nsIPrefBranch2" in Ci)
+		PS.QueryInterface(Ci.nsIPrefBranch2);
+	
+	if(!PS.getPrefType(TP[5])) {
+		PS.setIntPref(TP[5],0);
+	}
+	if(PS.getIntPref(TP[5])) {
+		PrefMon.slf();
+	}
+	
 	AddonManager.addAddonListener(PrefMon);
 	AddonManager.getAddonsByTypes(['extension'],function(addons) {
 		addons.forEach(function(addon) PrefMon.adb[addon.id.toLowerCase()] = addon.name);
@@ -456,6 +581,8 @@ function startup(aData, aReason) {
 }
 
 function shutdown(aData, aReason) {
+	PrefMon.clf(aReason);
+	
 	if(aReason == APP_SHUTDOWN)
 		return;
 	
