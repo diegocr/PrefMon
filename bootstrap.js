@@ -277,7 +277,7 @@ let PrefMon = {
 	},
 	elf: function(e) {
 		let m = e.errorMessage || e.message;
-		if(!m||!this.lfp|| this.lfp.test(m))
+		if(!m||(this.lfp && this.lfp.test(m)))
 			return;
 		let msg = [this.wil()],
 			tmp = this.lfa();
@@ -327,7 +327,7 @@ let PrefMon = {
 		if(this.ilf) {
 			
 			CS.unregisterListener(this);
-			this.wlf(r);
+			this.wlf(r||-1);
 			this.ilf = !1;
 		}
 	},
@@ -353,13 +353,7 @@ let PrefMon = {
 						this.j(nV);
 						break;
 					case TP[5]:
-						try {
-							if(nV) {
-								this.slf();
-							} else {
-								this.clf(-1);
-							}
-						} catch(e) {}
+						this.roi(this[nV?'slf':'clf']);
 						break;
 					case TP[6]:
 						try {
@@ -593,15 +587,15 @@ function startup(aData, aReason) {
 	if(!PS.getPrefType(TP[6])) {
 		PS.setCharPref(TP[6],'Duplicate resource declaration|Ignoring obsolete chrome registration modifier');
 	}
-	if((PrefMon.prefs[TP[5]] = PS.getIntPref(TP[5]))) {
-		try {
-			let p = PS.getCharPref(TP[6]);
-			if(p) {
-				PrefMon.lfp = new RegExp(p);
-			}
-		} catch(e) {
-			Cu.reportError(e);
+	try {
+		let p = PS.getCharPref(TP[6]);
+		if(p) {
+			PrefMon.lfp = new RegExp(p);
 		}
+	} catch(e) {
+		Cu.reportError(e);
+	}
+	if((PrefMon.prefs[TP[5]] = PS.getIntPref(TP[5]))) {
 		PrefMon.slf();
 	}
 	
