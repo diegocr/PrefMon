@@ -39,7 +39,8 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		BR + 'nonboxfor',
 		BR + 'nonboxbyex',
 		BR + 'revonstrg',
-		BR + 'ltf'
+		BR + 'ltf',
+		BR + 'lfp'
 	];
 
 Cu.import('resource://gre/modules/AddonManager.jsm');
@@ -53,6 +54,7 @@ let PrefMon = {
 	llm: [],
 	ilf: !1,
 	dlf: [],
+	lfp: 0,
 	
 	log: function(m) {
 		// dump('Preferences Monitor :: '+ m + "\n");
@@ -248,10 +250,16 @@ let PrefMon = {
 	wlf: function(r) {
 		if(r) {
 			let m = this.lfa();
-			if(r == APP_SHUTDOWN) {
-				m.push('Application shutting down.');
-			} else {
-				m.push('PrefMon being disabled/uninstalled.');
+			switch(r) {
+				case APP_SHUTDOWN:
+					m.push('Application shutting down.');
+					break;
+				case ADDON_DISABLE:
+					m.push('PrefMon being disabled/uninstalled.');
+					break;
+				default:
+					m.push('Logging disabled.');
+					break;
 			}
 			this.dlf.push(this.wil());
 			this.dlf.push(m.join(" "));
@@ -263,14 +271,17 @@ let PrefMon = {
 		let s = Cc["@mozilla.org/network/file-output-stream;1"].createInstance(Ci.nsIFileOutputStream);
 		s.init(this.lfn, 0x02 | 0x10, parseInt("0755",8), 0);
 		let c = Cc["@mozilla.org/intl/converter-output-stream;1"].createInstance(Ci.nsIConverterOutputStream);
-		c.init(s, "UTF-8", 0, 0);
-		c.writeString(data);
+		c.init( s, "UTF-8", 0, 0 );
+		c.writeString(data+"\r\n");
 		c.close();
 	},
 	elf: function(e) {
+		let m = e.errorMessage || e.message;
+		if(!m||!this.lfp|| this.lfp.test(m))
+			return;
 		let msg = [this.wil()],
 			tmp = this.lfa();
-		tmp.push(e.errorMessage || e.message);
+		tmp.push(m);
 		msg.push(tmp.join(" "));
 		for(let i in e) {
 			if(i != 'message'
@@ -315,8 +326,8 @@ let PrefMon = {
 	clf: function(r) {
 		if(this.ilf) {
 			
-			this.wlf(r);
 			CS.unregisterListener(this);
+			this.wlf(r);
 			this.ilf = !1;
 		}
 	},
@@ -342,11 +353,18 @@ let PrefMon = {
 						this.j(nV);
 						break;
 					case TP[5]:
-						if(d) {
-							this.slf();
-						} else {
-							this.clf(ADDON_DISABLE);
-						}
+						try {
+							if(nV) {
+								this.slf();
+							} else {
+								this.clf(-1);
+							}
+						} catch(e) {}
+						break;
+					case TP[6]:
+						try {
+							this.lfp = new RegExp(nV);
+						} catch(e) {}
 						break;
 					case TP[0]:
 						if(sTimer)
@@ -519,10 +537,12 @@ let PrefMon = {
 					}
 				}
 				
-				if("category" in s && s.flags < this.prefs[TP[5]]) {
+				if(s instanceof Ci.nsIConsoleMessage || s.flags < this.prefs[TP[5]]-1) try {
 					
 					this.elf(s);
-				}
+					
+				} catch(e) {}
+				
 				break;
 		}
 	},
@@ -570,7 +590,18 @@ function startup(aData, aReason) {
 	if(!PS.getPrefType(TP[5])) {
 		PS.setIntPref(TP[5],0);
 	}
-	if(PS.getIntPref(TP[5])) {
+	if(!PS.getPrefType(TP[6])) {
+		PS.setCharPref(TP[6],'Duplicate resource declaration|Ignoring obsolete chrome registration modifier');
+	}
+	if((PrefMon.prefs[TP[5]] = PS.getIntPref(TP[5]))) {
+		try {
+			let p = PS.getCharPref(TP[6]);
+			if(p) {
+				PrefMon.lfp = new RegExp(p);
+			}
+		} catch(e) {
+			Cu.reportError(e);
+		}
 		PrefMon.slf();
 	}
 	
@@ -581,14 +612,10 @@ function startup(aData, aReason) {
 }
 
 function shutdown(aData, aReason) {
-	PrefMon.clf(aReason);
-	
-	if(aReason == APP_SHUTDOWN)
-		return;
-	
 	if(sTimer) sTimer.cancel();
 	AddonManager.removeAddonListener(PrefMon);
 	PS.removeObserver("", PrefMon);
+	PrefMon.clf(aReason);
 }
 
 function install(aData, aReason) {}

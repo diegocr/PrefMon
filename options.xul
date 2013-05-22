@@ -12,16 +12,20 @@
 	<setting pref="extensions.preferencesmonitor.revon" type="string" title="Revert Changes On:">
 		Automatically revert changes made to preferences matching with this RegExp Pattern.
 	</setting>
-	<setting pref="extensions.preferencesmonitor.ltf" type="menulist" title="Save to File" tooltiptext="Save console messages to a file in your profile folder">
+	<setting pref="extensions.preferencesmonitor.ltf" type="menulist" title="Save console messages to file?">
 		<menulist>
 			<menupopup>
-				<menuitem value="0" label="Off"/>
-				<menuitem value="1" label="error"/>
-				<menuitem value="2" label="warning"/>
-				<menuitem value="3" label="exception"/>
-				<menuitem value="5" label="strict"/>
+				<menuitem value="0" label="No"/>
+				<menuitem value="1" label="Info"/>
+				<menuitem value="2" label="Errors"/>
+				<menuitem value="3" label="Warnings"/>
+				<menuitem value="4" label="Exceptions"/>
+				<menuitem value="6" label="Strict"/>
 			</menupopup>
 		</menulist>
+	</setting>
+	<setting pref="extensions.preferencesmonitor.lfp" type="string" title="Skip on file:">
+		Do not save to file entries matching with this RegExp pattern.
 	</setting>
 	<setting title="" type="control">
 		<button label="Launch eCleaner" oncommand="Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator).getMostRecentWindow('navigator:browser').openDialog('chrome://prefmon-ecleaner/content/ecleaner.xul','prefmon-ecleaner','chrome,titlebar,toolbar,centerscreen')"/>
