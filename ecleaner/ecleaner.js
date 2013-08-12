@@ -18,7 +18,7 @@ let ecleaner = {};
 	
 	let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components,
 		d = w.document, $ = d.getElementById.bind(d),
-		pkg = 'eCleaner v2.3';
+		pkg = 'eCleaner v2.4';
 	
 	Cu.import("resource://gre/modules/Services.jsm");
 	Cu.import("resource://gre/modules/AddonManager.jsm");
@@ -33,7 +33,7 @@ let ecleaner = {};
 		'strictCompatibility', 'hotfix'
 	];
 	let nReserved = [
-		'browser','dom','intl','javascript','services','security','profiler','privacy','print','plugins',
+		'browser','dom','intl','javascript','services','security','profiler','privacy','plugins',
 		'plugin','places','pdfjs','nglayout','network','mousewheel','middlemouse','memory','media','layout',
 		'lightweightThemes','layers','inspector','images','image','idle','html5','gfx','general','gecko','font',
 		'editor','devtools','app','accessibility','capability','social','stagefright','toolkit','bidi','profile',
@@ -41,7 +41,7 @@ let ecleaner = {};
 		'svg','geo','urlclassifier','prompts','slider','focusmanager','viewmanager','full-screen-api','converter',
 		'gestures','keyword','zoom','notification','startup','breakpad','alerts','advanced','application',
 		'xpinstall','clipboard','toolbar','signed','pref','print_printer','storage','datareporting','wap',
-		'memory_info_dumper','spellchecker','gl','plain_text','canvas'
+		'memory_info_dumper','spellchecker','gl','plain_text','canvas','mms','ril'
 	];
 	let pReserved = [
 		'addons.sqlite','blocklist.xml','bookmarkbackups','cert8.db','compatibility.ini','content-prefs.sqlite',
@@ -53,7 +53,8 @@ let ecleaner = {};
 		'chromeappsstore.sqlite','lightweighttheme-footer','lightweighttheme-header','localstore-safe.rdf',
 		'search-metadata.json','search.sqlite','urlclassifier3.sqlite','searchplugins','signons3.txt',
 		'history.dat','hostperm.1','lwtheme','addons.sqlite-journal','persdict.dat','.parentlock','.autoreg',
-		'webappsstore.sqlite-shm','webappsstore.sqlite-wal'
+		'webappsstore.sqlite-shm','webappsstore.sqlite-wal','healthreport','healthreport.sqlite','times.json',
+		'healthreport.sqlite-shm','healthreport.sqlite-wal','addons.json','extensions.json','safebrowsing'
 	];
 	
 	let RDF = Cc["@mozilla.org/rdf/rdf-service;1"].getService(Ci.nsIRDFService),
@@ -167,12 +168,14 @@ let ecleaner = {};
 		fis = Cc["@mozilla.org/browser/favicon-service;1"].getService(Ci.nsIFaviconService);
 	function gf(u) {
 		u = newURI(u);
-		let i = fis.getFaviconImageForPage(u);
+		// XXX: TODO..
+		let K = typeof fis.getFaviconImageForPage !== 'function' && {equals: function() !0};
+		let i = K || fis.getFaviconImageForPage(u);
 		if(i.equals(fis.defaultFavicon)) {
-			i = fis.getFaviconImageForPage(newURI(u.prePath));
+			i = K || fis.getFaviconImageForPage(newURI(u.prePath));
 			if(i.equals(fis.defaultFavicon)) {
 				if(!(/^[\d.]+$/.test(u.host))) {
-					i = fis.getFaviconImageForPage(newURI(u.scheme+'://'+tld.getBaseDomainFromHost(u.host)));
+					i = K || fis.getFaviconImageForPage(newURI(u.scheme+'://'+tld.getBaseDomainFromHost(u.host)));
 				}
 				if(i.equals(fis.defaultFavicon)) {
 					/**
@@ -472,7 +475,20 @@ let ecleaner = {};
 		} else {
 			i += "The following errors occured:\n\n" + e.join("\n");
 		}
-		Services.prompt.alert(w, pkg, i+"\n");
+		// Services.prompt.alert(w, pkg, i+"\n");
+		let ps = Services.prompt,
+			flags = ps.BUTTON_POS_0 * ps.BUTTON_TITLE_OK  +
+				ps.BUTTON_POS_1 * ps.BUTTON_TITLE_IS_STRING;
+		if(1 == ps.confirmEx(w,pkg,i+"\n",flags,"",'Restart Firefox','',null,{value:!1})) {
+			
+			let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].createInstance(Ci.nsISupportsPRBool);
+			Services.obs.notifyObservers(cancelQuit, "quit-application-requested", null);
+			if(!cancelQuit.data) {
+				
+				Services.obs.notifyObservers(null, "quit-application-granted", null);
+				Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit | Ci.nsIAppStartup.eRestart);
+			}
+		}
 	}
 	
 	ecleaner.a = function() ldr();

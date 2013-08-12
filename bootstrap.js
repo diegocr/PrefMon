@@ -386,7 +386,7 @@ let PrefMon = {
 				}
 				
 				p = sN;
-				while(~(p||'').split(' -> ').pop().indexOf('jetpack/addon-sdk/') && (c=c && c.caller)) {
+				while(/(?:jetpack\/addon-|commonjs\/)sdk\//.test((p||'').split(' -> ').pop()) && (c=c && c.caller)) {
 					do {
 						p = c.filename;
 						eN = c.lineNumber;
@@ -419,7 +419,11 @@ let PrefMon = {
 				if(/^(jar|file)\:/i.test(sN)) {
 					
 					ext = this.sM(decodeURIComponent(sN),/extensions\/([^\/@]+)(?:@[^\/]+)?\//);
-					if(ext)ext = ext.replace(/\.xpi!?$/,'');
+					ext = (ext || '<unknown/local>').replace(/\.xpi!?$/,'');
+				} else {
+					
+					if(/^[A-Fa-f\d]{8}-(?:[A-Fa-f\d]{4}-){3}[A-Fa-f\d]{12}$/.test(ext))
+						ext = '{'+ext+'}';
 				}
 				
 				ext = ext.replace(/-at-jetpack$/,'@jetpack');
