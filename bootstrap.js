@@ -339,6 +339,43 @@ let PrefMon = {
 	
 	observe: function(s, t, d) {
 		switch(t) {
+			case 'EM-loaded': {
+				if(this.css) break;
+				let sss = Cc["@mozilla.org/content/style-sheet-service;1"]
+					.getService(Ci.nsIStyleSheetService);
+				
+				this.css =
+					'@-moz-document url(chrome://mozapps/content/extensions/extensions.xul),url(about:addons){'
+					+ 'setting[spec="preferencesmonitor"] {'
+					+ 'clip:rect(0px,9999px,35px,0px);'
+					+ 'margin-bottom:-35px;'
+					+ 'padding-top:5px;'
+					+ 'position:absolute}'
+					+ 'setting[spec="preferencesmonitor"]:before {'
+					+ 'text-shadow:1px 1px 3px rgba(240,240,200,0.8);'
+					+ 'background:-moz-radial-gradient(circle,rgba(190,190,170,0.4),transparent);'
+					+ 'content:attr(title);'
+					+ 'font:bold 14px serif;'
+					+ 'text-transform:uppercase;'
+					+ 'display:block;'
+					+ 'height:18px;'
+					+ 'margin-bottom:4px;'
+					+ 'text-align:center;'
+					+ 'letter-spacing:0.2em;'
+					+ 'width:100%'
+					+ '}}';
+				
+				this.css = Services.io.newURI('data:text/css;charset=utf-8,'
+					+ encodeURIComponent(this.css), null, null);
+				sss.loadAndRegisterSheet(this.css, sss.USER_SHEET);
+				
+				s.addEventListener('unload', function emUnload() {
+					sss.unregisterSheet(this.css, sss.USER_SHEET);
+					sss = undefined;
+					delete this.css;
+					s.removeEventListener('unload', emUnload, false);
+				}.bind(this), false);
+			}	break;
 			case 'nsPref:changed': {
 				let b = WM;
 				if(!b || !(b=b.getMostRecentWindow("navigator:browser")) || !(b=b.gBrowser)) {
@@ -426,11 +463,17 @@ let PrefMon = {
 						ext = '{'+ext+'}';
 				}
 				
-				ext = ext.replace(/-at-jetpack$/,'@jetpack');
+				ext = ext.replace('-at-','@');
 				ext2 = this.sM(sN,/extensions\/([^\/@]+)@[^\/]+\//);
-				ext3 = this.sM(sN,/extensions\/[^\/@]+@([^\/]+)\//);
-				eN = this.gN(ext) || this.gN(''+ext2+'@'+(ext3||'').replace(/\.xpi!?$/,'')) || ext;
-				if(ext3)ext3 = ext3.replace(/(\.\w+)+!?$/,'');
+				ext3 = this.sM(sN,/extensions\/[^\/@]+@([^\/]+)\//)
+					|| this.sM((function(c) {
+						while((c=c && c.caller) && c.filename.indexOf('file:') == -1);
+						return c && c.filename || '';
+					})(c),/extensions\/([^\/]+)\//);
+				ext3 = decodeURIComponent(ext3||'').replace(/\.xpi!?$/,'');
+				eN = this.gN(ext) || this.gN(''+ext2+'@'+ext3)
+					|| this.gN(ext3) || ext;
+				ext3 = ext3.replace(/(?:\.\w+)+!?$/,'');
 				
 				// LOG(ext+' ~ '+ext2+' ~ '+ext3+' ~~ '+eN);
 				
@@ -460,8 +503,8 @@ let PrefMon = {
 				c = Components.stack;
 				while((c = c.caller)) {
 					if(c.filename || stack.length) {
-						stack.push(('^ ' + c).replace(/\s[^\s]+ ->/g,'')
-							.replace(/\s(jar:)?file:.*?\/extensions\//,' Resource://'));
+						stack.push(decodeURIComponent('^ ' + c).replace(/\s[^\s]+ ->/g,'')
+							.replace(/\s(?:jar:)?file:.*?\/extensions\//,' Profile://'));
 					}
 				}
 				
@@ -580,6 +623,7 @@ function startup(aData, aReason) {
 		}
 		
 		PS.addObserver("", this, false);
+		OS.addObserver(this,"EM-loaded",false);
 	}.bind(PrefMon),1942);
 	
 	if("nsIPrefBranch2" in Ci)
@@ -612,6 +656,7 @@ function startup(aData, aReason) {
 function shutdown(aData, aReason) {
 	if(sTimer) sTimer.cancel();
 	AddonManager.removeAddonListener(PrefMon);
+	OS.removeObserver(PrefMon,"EM-loaded",false);
 	PS.removeObserver("", PrefMon);
 	PrefMon.clf(aReason);
 }

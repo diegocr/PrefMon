@@ -1,17 +1,20 @@
 <?xml version="1.0"?>
 <vbox xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+	<setting spec="preferencesmonitor" type="bool" title="Whitelists" />
 	<setting pref="extensions.preferencesmonitor.nonboxfor" type="string" title="Ignore Changes On:">
 		Prevent the NotificationBox from being shown for changed preferences matching with this RegExp Pattern.
 	</setting>
 	<setting pref="extensions.preferencesmonitor.nonboxbyex" type="string" title="Ignore By Add-On:">
 		This is the internal whitelist of changed preferences being reported as "controlled"
 	</setting>
+	<setting spec="preferencesmonitor" type="bool" title="Preferences Guard" />
 	<setting pref="extensions.preferencesmonitor.revask" type="bool" title="Ask to Revert Changes:">
 		An additional button will appear on the NotificationBox which you can click to revert the change.
 	</setting>
 	<setting pref="extensions.preferencesmonitor.revon" type="string" title="Revert Changes On:">
 		Automatically revert changes made to preferences matching with this RegExp Pattern.
 	</setting>
+	<setting spec="preferencesmonitor" type="bool" title="Console Logging" />
 	<setting pref="extensions.preferencesmonitor.ltf" type="menulist" title="Save console messages to file?">
 		<menulist>
 			<menupopup>
