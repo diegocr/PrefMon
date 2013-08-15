@@ -63,7 +63,18 @@ let PrefMon = {
 		if(this.llm.length == 2)
 			this.llm.shift();
 		this.llm.push(m);
-		CS.logStringMessage('Preferences Monitor :: '+(new Date()).toString()+"\n> "+m);
+		
+		if(this.lms) {
+			this.lms.push(m);
+		} else {
+			this.lms = [m];
+			setTimeout(function() {
+				let lms = this.lms;
+				delete this.lms;
+				CS.logStringMessage('Preferences Monitor :: '
+					+(new Date()).toString()+"\n> "+lms.join("\n> "));
+			}, 710);
+		}
 	},
 	
 	onEnabled: function(a) this.adb[a.id.toLowerCase()] = a.name,
@@ -333,8 +344,7 @@ let PrefMon = {
 	},
 	
 	roi: function(c) {
-		Cc["@mozilla.org/thread-manager;1"].getService().currentThread
-			.dispatch({run:c.bind(this)},Ci.nsIEventTarget.DISPATCH_NORMAL);
+		Services.tm.currentThread.dispatch(c.bind(this),Ci.nsIEventTarget.DISPATCH_NORMAL);
 	},
 	
 	observe: function(s, t, d) {
@@ -400,7 +410,7 @@ let PrefMon = {
 					case TP[0]:
 						if(sTimer)
 							sTimer.cancel();
-						setTimeout(this.n.bind(this),1815);
+						setTimeout(this.n,1815);
 					default:
 						break;
 				}
@@ -520,11 +530,13 @@ let PrefMon = {
 					MsgExt = nn + ' :: ' + (new Date()).toString() + "\n\n" + Msg + "\n\noldValue: " +  (_(oV)||'`No old Value found´')
 						+ "\nnewValue: " + (_(nV)||'`Empty (Value Cleared?)´')
 						+ (sNo ? "\n\n"+sNo.replace(sN.replace(/!\/.+$/,'!'),'','g'):"")
-						+ (stack.length ? (sNo ? "\n":"\n\n") + stack.join("\n"):""),
+						+ (stack.length ? (sNo ? "\n":"\n\n") + stack.join("\n"):"");
 				
-				sE = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
-				sE.init(MsgExt,sN,String(lN),lN,null,Ci.nsIScriptError.errorFlag,'chrome javascript');
-				CS.logMessage(sE);
+				this.roi(function() {
+					let sE = Cc["@mozilla.org/scripterror;1"].createInstance(Ci.nsIScriptError);
+					sE.init(MsgExt,sN,String(lN),lN,null,Ci.nsIScriptError.errorFlag,'chrome javascript');
+					CS.logMessage(sE);
+				});
 				
 				let l = this.prefs[TP[0]];
 				if(l) try {
@@ -595,7 +607,7 @@ let sTimer;
 function setTimeout(f,n) {
 	let i = Ci.nsITimer,
 		t = Cc["@mozilla.org/timer;1"].createInstance(i);
-	t.initWithCallback({notify:f},n||30,i.TYPE_ONE_SHOT);
+	t.initWithCallback({notify:f.bind(PrefMon)},n||30,i.TYPE_ONE_SHOT);
 	return sTimer = t;
 }
 function startup(aData, aReason) {
@@ -617,14 +629,14 @@ function startup(aData, aReason) {
 		
 		if(!PS.getPrefType(TP[4])) {
 			PS.setCharPref(TP[4],'');
-			setTimeout(this.n.bind(this),1492);
+			setTimeout(this.n,1492);
 		} else {
-			setTimeout(this.m.bind(this),1815);
+			setTimeout(this.m,1815);
 		}
 		
 		PS.addObserver("", this, false);
 		OS.addObserver(this,"EM-loaded",false);
-	}.bind(PrefMon),1942);
+	},1942);
 	
 	if("nsIPrefBranch2" in Ci)
 		PS.QueryInterface(Ci.nsIPrefBranch2);
