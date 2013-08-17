@@ -60,7 +60,7 @@ let PrefMon = {
 		// dump('Preferences Monitor :: '+ m + "\n");
 		if(~this.llm.indexOf(m))
 			return;
-		if(this.llm.length == 2)
+		if(this.llm.length == 3)
 			this.llm.shift();
 		this.llm.push(m);
 		
@@ -177,7 +177,7 @@ let PrefMon = {
 	},
 	
 	n: function() {
-		sTimer = null;
+		delete this.nnt;
 		let p = this.p(TP[0]);
 		if(!p) {
 			this.s(TP[4],'');
@@ -408,9 +408,9 @@ let PrefMon = {
 						} catch(e) {}
 						break;
 					case TP[0]:
-						if(sTimer)
-							sTimer.cancel();
-						setTimeout(this.n,1815);
+						if(this.nnt)
+							this.nnt.cancel();
+						this.nnt = setTimeout(this.n,1815);
 					default:
 						break;
 				}
