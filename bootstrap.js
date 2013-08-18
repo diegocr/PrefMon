@@ -77,6 +77,12 @@ let PrefMon = {
 		}
 	},
 	
+	onDisabling: function(a) {
+		if(a.name === 'Preferences Monitor') {
+			
+			Services.prompt.alert(null,a.name,a.name + ' is being disabled.');
+		}
+	},
 	onEnabled: function(a) this.adb[a.id.toLowerCase()] = a.name,
 	onInstalled: function(a) this.adb[a.id.toLowerCase()] = a.name,
 	gN: function(id) this.adb[id.toLowerCase()],
