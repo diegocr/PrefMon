@@ -40,7 +40,9 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		BR + 'nonboxbyex',
 		BR + 'revonstrg',
 		BR + 'ltf',
-		BR + 'lfp'
+		BR + 'lfp',
+		BR + 'hiper',
+		BR + 'nbtime'
 	];
 
 Cu.import('resource://gre/modules/AddonManager.jsm');
@@ -461,7 +463,8 @@ let PrefMon = {
 				ext = sN.substr(p,sN.indexOf('/',p)-p);
 				
 				if(~['global','mozapps','browser','components','modules','gre','app','services-common','services-sync'].indexOf(ext) || /^about:/.test(sN)) {
-					this.log('Permitted change by `'+(ext||sN)+'´ for "'+d+'"');
+					if(!this.prefs[TP[7]])
+						this.log('Permitted change by `'+(ext||sN)+'´ for "'+d+'"');
 					this.u(d,nV);
 					break;
 				}
@@ -479,11 +482,11 @@ let PrefMon = {
 						ext = '{'+ext+'}';
 				}
 				
-				ext = ext.replace('-at-','@');
+				ext = (ext||sN).replace('-at-','@');
 				ext2 = this.sM(sN,/extensions\/([^\/@]+)@[^\/]+\//);
 				ext3 = this.sM(sN,/extensions\/[^\/@]+@([^\/]+)\//)
 					|| this.sM((function(c) {
-						while((c=c && c.caller) && c.filename.indexOf('file:') == -1);
+						while((c=c && c.caller) && (c.filename||'').indexOf('file:') == -1);
 						return c && c.filename || '';
 					})(c),/extensions\/([^\/]+)\//);
 				ext3 = decodeURIComponent(ext3||'').replace(/\.xpi!?$/,'');
@@ -505,7 +508,8 @@ let PrefMon = {
 							continue;
 						c = 1;
 					}
-					this.log('Permitted '+(c?'controlled':'self-made')+' change by `'+eN+'´ for "'+d+'"');
+					if(!this.prefs[TP[7]])
+						this.log('Permitted '+(c?'controlled':'self-made')+' change by `'+eN+'´ for "'+d+'"');
 					this.u(d,nV);
 					return;
 				}
@@ -583,7 +587,13 @@ let PrefMon = {
 					nb.push({label:'Revert Change',accessKey:"R",callback:this.r(d,oV)});
 				}
 				nb.push({label:bn,accessKey:"I",callback:this.c(b.browsers[0].contentWindow,nn,k?d:0,oV)});
-				n.appendNotification(nn+': '+Msg,nn,"chrome://global/skin/icons/warning-16.png",n.PRIORITY_WARNING_MEDIUM,nb);
+				let ne = n.appendNotification(nn+': '+Msg,nn,"chrome://global/skin/icons/warning-16.png",n.PRIORITY_WARNING_MEDIUM,nb);
+				
+				if(this.prefs[TP[8]]) {
+					let nbt;
+					
+					nbt = setTimeout(function() n.removeNotification(ne), this.prefs[TP[8]] * 1000);
+				}
 				
 			}	break;
 			
@@ -628,6 +638,14 @@ function startup(aData, aReason) {
 			PS.setCharPref(TP[3],'chatzilla:^extensions\\.irc\\.;wot:^weboftrust\\.');
 		}
 		PrefMon.j(PS.getCharPref(TP[3]));
+		
+		if(!PS.getPrefType(TP[7])) {
+			PS.setBoolPref(TP[7],!1);
+		}
+		
+		if(!PS.getPrefType(TP[8])) {
+			PS.setIntPref(TP[8],0);
+		}
 		
 		for each(let o in PS.getChildList("", {value: 0})) {
 			this.prefs[o] = this.p(o);

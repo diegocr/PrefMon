@@ -7,6 +7,9 @@
 	<setting pref="extensions.preferencesmonitor.nonboxbyex" type="string" title="Ignore By Add-On:">
 		This is the internal whitelist of changed preferences being reported as "controlled"
 	</setting>
+	<setting pref="extensions.preferencesmonitor.hiper" type="bool" title="Hide Permitted Messages:">
+		Do not print to the Error Console messages for permitted changes.
+	</setting>
 	<setting spec="preferencesmonitor" type="bool" title="Preferences Guard" />
 	<setting pref="extensions.preferencesmonitor.revask" type="bool" title="Ask to Revert Changes:">
 		An additional button will appear on the NotificationBox which you can click to revert the change.
@@ -29,6 +32,10 @@
 	</setting>
 	<setting pref="extensions.preferencesmonitor.lfp" type="string" title="Skip on file:">
 		Do not save to file entries matching with this RegExp pattern.
+	</setting>
+	<setting spec="preferencesmonitor" type="bool" title="Misc Options" />
+	<setting pref="extensions.preferencesmonitor.nbtime" type="integer" title="Notifications Timeout:">
+		The NotificationBox will be automatically closed after the specified number of seconds (set to 0 so they last until manually closed)
 	</setting>
 	<setting title="" type="control">
 		<button label="Launch eCleaner" oncommand="Cc['@mozilla.org/appshell/window-mediator;1'].getService(Ci.nsIWindowMediator).getMostRecentWindow('navigator:browser').openDialog('chrome://prefmon-ecleaner/content/ecleaner.xul','prefmon-ecleaner','chrome,titlebar,toolbar,centerscreen')"/>
