@@ -587,12 +587,17 @@ let PrefMon = {
 					nb.push({label:'Revert Change',accessKey:"R",callback:this.r(d,oV)});
 				}
 				nb.push({label:bn,accessKey:"I",callback:this.c(b.browsers[0].contentWindow,nn,k?d:0,oV)});
-				let ne = n.appendNotification(nn+': '+Msg,nn,"chrome://global/skin/icons/warning-16.png",n.PRIORITY_WARNING_MEDIUM,nb);
+				let ne = n.appendNotification(nn+': '+Msg,nn,
+					"chrome://global/skin/icons/warning-16.png",
+					n.PRIORITY_WARNING_MEDIUM,nb,function(r) {
+						if(r === 'removed') {
+							if(ne.nbt)
+								ne.nbt.cancel();
+						}
+					});
 				
 				if(this.prefs[TP[8]]) {
-					let nbt;
-					
-					nbt = setTimeout(function() n.removeNotification(ne), this.prefs[TP[8]] * 1000);
+					ne.nbt = setTimeout(function() n.removeNotification(ne), this.prefs[TP[8]] * 1000);
 				}
 				
 			}	break;
