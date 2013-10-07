@@ -18,7 +18,7 @@ let ecleaner = {};
 	
 	let {classes:Cc,interfaces:Ci,utils:Cu,results:Cr} = Components,
 		d = w.document, $ = d.getElementById.bind(d),
-		pkg = 'eCleaner v2.4';
+		pkg = 'eCleaner v2.5';
 	
 	Cu.import("resource://gre/modules/Services.jsm");
 	Cu.import("resource://gre/modules/AddonManager.jsm");
@@ -470,10 +470,12 @@ let ecleaner = {};
 		}
 		
 		i = tc + ' '+m+'.\n\n';
-		if (e.length < 1) {
-			i += "Operation completed successfully!";
-		} else {
+		if (e.length) {
 			i += "The following errors occured:\n\n" + e.join("\n");
+		} else if(0 == tc) {
+			i += "Operation completed without changes!";
+		} else {
+			i += "Operation completed successfully!";
 		}
 		// Services.prompt.alert(w, pkg, i+"\n");
 		let ps = Services.prompt,
@@ -512,7 +514,16 @@ let ecleaner = {};
 							} catch (u) {}
 						c++;
 					}
-					p.deleteBranch(l);
+					if(c == 0) try {
+						 // Handle somePref.
+						l = l.split('.').shift();
+						Services.prefs.clearUserPref(l);
+						++c;
+					} catch(e) {
+						Cu.reportError(e);
+					} else {
+						p.deleteBranch(l);
+					}
 					return c;
 				});
 				break;
