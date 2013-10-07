@@ -516,14 +516,12 @@ let ecleaner = {};
 					}
 					if(c == 0) try {
 						 // Handle somePref.
-						l = l.split('.').shift();
-						Services.prefs.clearUserPref(l);
+						Services.prefs.clearUserPref(l.split('.').shift());
 						++c;
 					} catch(e) {
 						Cu.reportError(e);
-					} else {
-						p.deleteBranch(l);
 					}
+					p.deleteBranch(l);
 					return c;
 				});
 				break;
