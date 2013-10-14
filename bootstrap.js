@@ -482,11 +482,12 @@ let PrefMon = {
 						ext = '{'+ext+'}';
 				}
 				
-				ext = (ext||sN).replace('-at-','@');
+				ext = (ext||sN).replace('-at-','@').replace('-dot-','.','g');
 				ext2 = this.sM(sN,/extensions\/([^\/@]+)@[^\/]+\//);
 				ext3 = this.sM(sN,/extensions\/[^\/@]+@([^\/]+)\//)
 					|| this.sM((function(c) {
-						while((c=c && c.caller) && (c.filename||'').indexOf('file:') == -1);
+						while((c=c && c.caller) && (c.filename||'')
+							.replace(/^.+->/,'').indexOf('file:') == -1);
 						return c && c.filename || '';
 					})(c),/extensions\/([^\/]+)\//);
 				ext3 = decodeURIComponent(ext3||'').replace(/\.xpi!?$/,'');
