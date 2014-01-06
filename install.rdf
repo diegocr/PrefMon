@@ -4,7 +4,7 @@
 		<em:id>{517f9e52-c795-4764-bf77-5e2db596cee6}</em:id>
 		<em:type>2</em:type>
 		<em:name>Preferences Monitor</em:name>
-		<em:version>3.4.4a1</em:version>
+		<em:version>3.5</em:version>
 		<em:creator>Diego Casorran &lt;dcasorran@gmail.com&gt;</em:creator>
 		<em:description>Track your Firefox's (about:config) preferences for unwanted changes.</em:description>
 		<em:bootstrap>true</em:bootstrap>
@@ -13,7 +13,7 @@
 				<!-- Firefox -->
 				<em:id>{ec8030f7-c20a-464f-9b0e-13a3a9e97384}</em:id>
 				<em:minVersion>4.0</em:minVersion>
-				<em:maxVersion>24.*</em:maxVersion>
+				<em:maxVersion>26.*</em:maxVersion>
 			</Description>
 		</em:targetApplication>
 	</Description>
