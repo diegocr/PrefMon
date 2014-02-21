@@ -177,6 +177,9 @@ let PrefMon = {
 		(''+v).split(';').forEach(function(p) {
 			p = p.split(':').map(String.trim);
 			if(p.length == 2) try {
+				if(p[0].replace(/[^\w]/g,'').length < 2) {
+					Cu.reportError('This does not look like a valid extension name[space]: "'+ p[0] +'"');
+				}
 				SPR[p[0]] = new RegExp(p[1]);
 			} catch(e) {
 				Cu.reportError(e);
