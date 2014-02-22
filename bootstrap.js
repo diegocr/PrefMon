@@ -586,7 +586,34 @@ let PrefMon = {
 					bn += '*';
 				}
 				
-				let nb = [];
+				let nb = [{
+					label     : 'Whitelist',
+					accessKey : 'W',
+					callback  : function() {
+						d = d.split('.');
+						if(d.length > 1) {
+							d.pop();
+							d = '^' + d.join("\\.") + '\\.';
+						} else {
+							d = '^' + d.join("\\.");
+						}
+						this.log('Whitelisting `'+eN+'` for `'+d+'`');
+						if(SPR[eN]) {
+							let o = '' + SPR[eN];
+							d = [eN + ':' + d + '|' + o.substr(1,o.length-2)];
+							for(let i in SPR) {
+								if(i!==eN && i!==nn && i!='prefmon-ecleaner' && SPR.hasOwnProperty(i)) {
+									o = '' + SPR[i];
+									d.push(i+':'+o.substr(1,o.length-2));
+								}
+							}
+							d = d.join(";");
+						} else {
+							d = PS.getCharPref(TP[3]) + ';' + eN + ':' + d;
+						}
+						PS.setCharPref(TP[3],d);
+					}.bind(this)
+				}];
 				if(k) {
 					nb.push({label:'Revert Change',accessKey:"R",callback:this.r(d,oV)});
 				}
