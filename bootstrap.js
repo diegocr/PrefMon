@@ -24,9 +24,10 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 		'pdf.js.components': ['pdfjs.database'],
 		noscript: ['dom.max_chrome_script_run_time','dom.max_script_run_time']
 	},
-	SPR = {
-		'Preferences Monitor': /./, // XXX..
-		'prefmon-ecleaner': /./    // XXX..
+	SPRs = {
+		'Preferences Monitor': /./,
+		'prefmon-ecleaner': /./,
+		'Devento': /./
 	},
 	PPR = [
 		'browser.startup.homepage_override.buildID',
@@ -48,6 +49,8 @@ const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components,
 Cu.import('resource://gre/modules/AddonManager.jsm');
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+
+let SPR = Object.create(SPRs);
 
 let PrefMon = {
 	prefs: {},
@@ -602,7 +605,7 @@ let PrefMon = {
 							let o = '' + SPR[eN];
 							d = [eN + ':' + d + '|' + o.substr(1,o.length-2)];
 							for(let i in SPR) {
-								if(i!==eN && i!==nn && i!='prefmon-ecleaner' && SPR.hasOwnProperty(i)) {
+								if(SPR.hasOwnProperty(i)) {
 									o = '' + SPR[i];
 									d.push(i+':'+o.substr(1,o.length-2));
 								}
