@@ -107,7 +107,12 @@ let PrefMon = {
 	},
 	
 	s: function(n,v) {
-		switch(PS.getPrefType(n)) {
+		if(v === null) {
+			if(!this.prefs[TP[7]])
+				this.log('Resetting option "'+n+'"');
+			PS.clearUserPref(n);
+		}
+		else switch(PS.getPrefType(n)) {
 			case Ci.nsIPrefBranch.PREF_STRING:
 				let ss = Ci.nsISupportsString,
 					t = Cc["@mozilla.org/supports-string;1"] .createInstance(ss);
