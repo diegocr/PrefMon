@@ -50,7 +50,7 @@ Cu.import('resource://gre/modules/AddonManager.jsm');
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 
-let SPR = Object.create(SPRs);
+const SPR = Object.create(SPRs);
 
 let PrefMon = {
 	prefs: {},
@@ -78,7 +78,8 @@ let PrefMon = {
 				delete this.lms;
 				CS.logStringMessage('Preferences Monitor :: '
 					+(new Date()).toString()+"\n> "+lms.join("\n> "));
-			}, 710);
+				sTimer = undefined;
+			}, 910);
 		}
 	},
 	
@@ -331,13 +332,14 @@ let PrefMon = {
 	slf: function() {
 		if(!this.ilf) {
 			
-			this.lfn = Services.dirsvc.get("ProfD", Ci.nsIFile);
-			this.lfn.append("prefmon-console.txt");
+			let f = Services.dirsvc.get("ProfD", Ci.nsIFile);
+			f.append("prefmon-console.txt");
 			
-			if(!this.lfn.exists()) {
-				
-				this.lfn.create(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0755",8));
+			if(!f.exists() || f.fileSize > 1e8) {
+				if(f.exists()) f.remove(!1);
+				f.create(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0755",8));
 			}
+			this.lfn = f;
 			
 			this.dlf = [];
 			this.dlf.push(this.wil('#'));
@@ -674,6 +676,11 @@ function startup(aData, aReason) {
 	setTimeout(function() {
 		sTimer = null;
 		
+		AddonManager.addAddonListener(this);
+		AddonManager.getAddonsByTypes(['extension'],function(addons) {
+			addons.forEach(function(addon) PrefMon.adb[addon.id.toLowerCase()] = addon.name);
+		});
+		
 		if(!PS.getPrefType(TP[0])) {
 			PS.setCharPref(TP[0],'^((browser\\.(startup|newtab)|general\\.useragent|keyword)\\.'
 				+ '|extensions\\.(autoDisableScopes|enabledScopes))');
@@ -681,7 +688,7 @@ function startup(aData, aReason) {
 		if(!PS.getPrefType(TP[3])) {
 			PS.setCharPref(TP[3],'chatzilla:^extensions\\.irc\\.;wot:^weboftrust\\.');
 		}
-		PrefMon.j(PS.getCharPref(TP[3]));
+		this.j(PS.getCharPref(TP[3]));
 		
 		if(!PS.getPrefType(TP[7])) {
 			PS.setBoolPref(TP[7],!1);
@@ -726,11 +733,6 @@ function startup(aData, aReason) {
 	if((PrefMon.prefs[TP[5]] = PS.getIntPref(TP[5]))) {
 		PrefMon.slf();
 	}
-	
-	AddonManager.addAddonListener(PrefMon);
-	AddonManager.getAddonsByTypes(['extension'],function(addons) {
-		addons.forEach(function(addon) PrefMon.adb[addon.id.toLowerCase()] = addon.name);
-	});
 }
 
 function shutdown(aData, aReason) {
