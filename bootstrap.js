@@ -523,7 +523,7 @@ let PrefMon = {
 						c = 1;
 					}
 					if(!this.prefs[TP[7]])
-						this.log('Permitted '+(c?'controlled':'self-made')+' change by `'+eN+'´ for "'+d+'"');
+						this.log('Permitted '+(c?'controlled':'self-made')+' change by `'+eN+'´ for "'+d+'"`');
 					this.u(d,nV);
 					return;
 				}
@@ -550,7 +550,7 @@ let PrefMon = {
 					if(v === null)
 						return v;
 					return typeof v != 'string' || v.length ? v.toString().substr(0,0x80) : null;
-				},nn = 'Preferences Monitor',Msg = '`' + eN + '´ changed the value of "' + d + '"',
+				},nn = 'Preferences Monitor',Msg = '`' + eN + '´ changed the value of "' + d + '"`',
 					MsgExt = nn + ' :: ' + (new Date()).toString() + "\n\n" + Msg + "\n\noldValue: " +  (_(oV)||'`No old Value found´')
 						+ "\nnewValue: " + (_(nV)||'`Empty (Value Cleared?)´')
 						+ (sNo ? "\n\n"+sNo.replace(sN.replace(/!\/.+$/,'!'),'','g'):"")
@@ -644,6 +644,8 @@ let PrefMon = {
 			}	break;
 			
 			default:
+				if(!this.lfn) break;
+				
 				if("QueryInterface" in s) {
 					
 					if(s instanceof Ci.nsIScriptError) {
