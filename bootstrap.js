@@ -368,6 +368,17 @@ let PrefMon = {
 		Services.tm.currentThread.dispatch(c.bind(this),Ci.nsIEventTarget.DISPATCH_NORMAL);
 	},
 	
+	qp: function(d) {
+		return [d in this.prefs ? this.prefs[d] : null, this.p(d)];
+	},
+	
+	cr: function(m,d) {
+		let [oV,nV] = this.qp(d);
+		
+		this.log('ERROR: ' + m + ', changed preference: `'+d+'´ FROM `'+oV+'´ TO `'+nV+'´');
+		this.u(d,nV);
+	},
+	
 	observe: function(s, t, d) {
 		switch(t) {
 			case 'EM-loaded': {
@@ -408,13 +419,10 @@ let PrefMon = {
 				}.bind(this), false);
 			}	break;
 			case 'nsPref:changed': {
-				let b = WM;
-				if(!b || !(b=b.getMostRecentWindow("navigator:browser")) || !(b=b.gBrowser)) {
-					this.log('WARNING: Unable to obtain navigator:browser (NotificationBox Unavailable)');
-				}
+				let c = Components.stack.caller,sN,lN,p,ext,ext2,ext3,sNo = null,
+					nV,oV, stack = [], eN, wlc;
 				
-				let c = Components.stack.caller,sN,lN,p,ext,ext2,ext3,sNo = null,nV=this.p(d),
-					oV = (d in this.prefs ? this.prefs[d] : null), stack = [], eN;
+				if(d.substr(0,BR.length) === BR) [oV,nV] = this.qp(d);
 				
 				switch(d) {
 					case TP[3]:
@@ -437,28 +445,27 @@ let PrefMon = {
 				}
 				
 				if(c == null) {
-					this.log('ERROR: Stack unavailable, changed preference: `'+d+'´ FROM `'+oV+'´ TO `'+nV+'´');
-					this.u(d,nV);
+					this.cr('Stack unavailable', d);
 					break;
 				}
 				
+				wlc = 30;
 				do {
 					sN = c.filename;
 					lN = c.lineNumber;
-				} while(sN === null && (c = c.caller));
+				} while(sN === null && (c = c.caller) && --wlc);
 				
 				if(sN == null) {
-					this.log('ERROR: Unable to obtain caller, changed preference: `'+d+'´ FROM `'+oV+'´ TO `'+nV+'´');
-					this.u(d,nV);
+					this.cr('Unable to obtain caller', d);
 					break;
 				}
 				
 				p = sN;
 				while(/(?:jetpack\/addon-|commonjs\/)sdk\//.test((p||'').split(' -> ').pop()) && (c=c && c.caller)) {
-					do {
+					wlc = 30; do {
 						p = c.filename;
 						eN = c.lineNumber;
-					} while(p === null && (c = c.caller));
+					} while(p === null && (c = c.caller) && --wlc);
 				}
 				
 				if(eN) {
@@ -476,9 +483,11 @@ let PrefMon = {
 				ext = sN.substr(p,sN.indexOf('/',p)-p);
 				
 				if(~['global','mozapps','browser','components','modules','gre','app','services-common','services-sync'].indexOf(ext) || /^about:/.test(sN)) {
-					if(!this.prefs[TP[7]])
-						this.log('Permitted change by `'+(ext||sN)+'´ for "'+d+'"');
-					this.u(d,nV);
+					if(d.substr(0,14) != "datareporting.") {
+						if(!this.prefs[TP[7]])
+							this.log('Permitted change by `'+(ext||sN)+'´ for "'+d+'"');
+						this.u(d,nV || this.p(d));
+					}
 					break;
 				}
 				
@@ -498,8 +507,8 @@ let PrefMon = {
 				ext = (ext||sN).replace('-at-','@').replace('-dot-','.','g');
 				ext2 = this.sM(sN,/extensions\/([^\/@]+)@[^\/]+\//);
 				ext3 = this.sM(sN,/extensions\/[^\/@]+@([^\/]+)\//)
-					|| this.sM((function(c) {
-						while((c=c && c.caller) && (c.filename||'')
+					|| this.sM((function(c) { wlc = 30;
+						while(--wlc && (c=c && c.caller) && (c.filename||'')
 							.replace(/^.+->/,'').indexOf('file:') == -1);
 						return c && c.filename || '';
 					})(c),/extensions\/([^\/]+)\//);
@@ -524,10 +533,12 @@ let PrefMon = {
 					}
 					if(!this.prefs[TP[7]])
 						this.log('Permitted '+(c?'controlled':'self-made')+' change by `'+eN+'´ for "'+d+'"`');
-					this.u(d,nV);
+					this.u(d,nV || this.p(d));
 					return;
 				}
 				
+				if(!nV) [oV,nV] = this.qp(d);
+
 				if(oV === nV) {
 					this.log('VOID change by `'+eN+'´ for "'+d+'" -> ('+nV+')');
 					break;
@@ -573,7 +584,11 @@ let PrefMon = {
 					Cu.reportError(e);
 				}
 				
-				if(!b)break;
+				let b = WM;
+				if(!b || !(b=b.getMostRecentWindow("navigator:browser")) || !(b=b.gBrowser)) {
+					this.log('WARNING: Unable to obtain navigator:browser (NotificationBox Unavailable)');
+					break;
+				}
 				let k = this.prefs[TP[1]];
 				
 				if(!(d in this.pan)) {
