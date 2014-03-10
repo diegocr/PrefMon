@@ -412,12 +412,14 @@
 						+ encodeURIComponent(this.css), null, null);
 					sss.loadAndRegisterSheet(this.css, sss.USER_SHEET);
 
-					s.addEventListener('unload', function emUnload() {
+					this.emu = function() {
 						sss.unregisterSheet(this.css, sss.USER_SHEET);
 						sss = undefined;
 						delete this.css;
-						s.removeEventListener('unload', emUnload, false);
-					}.bind(this), false);
+						s.removeEventListener('unload', this.emu, false);
+						delete this.emu;
+					};
+					s.addEventListener('unload', this.emu, false);
 				}	break;
 				case 'nsPref:changed': {
 					let c = Components.stack.caller,sN,lN,p,ext,ext2,ext3,sNo = null,
@@ -763,6 +765,7 @@
 		AddonManager.removeAddonListener(PrefMon);
 		OS.removeObserver(PrefMon,"EM-loaded",false);
 		PS.removeObserver("", PrefMon);
+		if(PrefMon.emu) PrefMon.emu();
 		PrefMon.clf(aReason);
 	}
 
