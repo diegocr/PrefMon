@@ -393,7 +393,7 @@
 						+ 'clip:rect(0px,9999px,35px,0px);'
 						+ 'margin-bottom:-35px;'
 						+ 'padding-top:5px;'
-						+ 'position:absolute}'
+						+ 'position:absolute;}'
 						+ 'setting[spec="preferencesmonitor"]:before {'
 						+ 'text-shadow:1px 1px 3px rgba(240,240,200,0.8);'
 						+ 'background:-moz-radial-gradient(circle,rgba(190,190,170,0.4),transparent);'
@@ -405,11 +405,11 @@
 						+ 'margin-bottom:4px;'
 						+ 'text-align:center;'
 						+ 'letter-spacing:0.2em;'
-						+ 'width:100%'
+						+ 'width:100%;'
 						+ '}}';
 
 					this.css = Services.io.newURI('data:text/css;charset=utf-8,'
-						+ encodeURIComponent(this.css), null, null);
+						+ encodeURIComponent(this.css.replace(';',' !important;','g')), null, null);
 					sss.loadAndRegisterSheet(this.css, sss.USER_SHEET);
 
 					this.emu = function() {
