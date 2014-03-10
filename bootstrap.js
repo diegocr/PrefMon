@@ -418,7 +418,7 @@
 						delete this.css;
 						s.removeEventListener('unload', this.emu, false);
 						delete this.emu;
-					};
+					}.bind(this);
 					s.addEventListener('unload', this.emu, false);
 				}	break;
 				case 'nsPref:changed': {
