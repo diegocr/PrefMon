@@ -387,9 +387,10 @@
 					let sss = Cc["@mozilla.org/content/style-sheet-service;1"]
 						.getService(Ci.nsIStyleSheetService);
 
-					this.css =
-						'@-moz-document url(chrome://mozapps/content/extensions/extensions.xul),url(about:addons){'
-						+ 'setting[spec="preferencesmonitor"] {'
+					if(!this.astyle)
+					  this.css = 'display:none;';
+					else
+					  this.css = ''
 						+ 'clip:rect(0px,9999px,35px,0px);'
 						+ 'margin-bottom:-35px;'
 						+ 'padding-top:5px;'
@@ -405,11 +406,12 @@
 						+ 'margin-bottom:4px;'
 						+ 'text-align:center;'
 						+ 'letter-spacing:0.2em;'
-						+ 'width:100%;'
-						+ '}}';
+						+ 'width:100%;';
 
+					this.css = '@-moz-document url(chrome://mozapps/content/extensions/extensions.xul),url(about:addons){'
+						+ 'setting[spec="preferencesmonitor"] {' + this.css.replace(';',' !important;','g') + '}}';
 					this.css = Services.io.newURI('data:text/css;charset=utf-8,'
-						+ encodeURIComponent(this.css.replace(';',' !important;','g')), null, null);
+						+ encodeURIComponent(this.css), null, null);
 					sss.loadAndRegisterSheet(this.css, sss.USER_SHEET);
 
 					this.emu = function() {
@@ -698,6 +700,22 @@
 			AddonManager.getAddonsByTypes(['extension'],function(addons) {
 				addons.forEach(function(addon) PrefMon.adb[addon.id.toLowerCase()] = addon.name);
 				AddonManager.addAddonListener(PrefMon);
+
+				AddonManager.getAddonsByTypes(['theme'],function(themes) {
+					let theme = {id:''};
+					themes.some(function(t) t.isActive && (theme=t));
+
+					PrefMon.astyle = theme.id === "{972ce4c6-7e08-4474-a285-3208198ce6fd}"
+						|| ~theme.id.indexOf('@personas.mozilla.org');
+
+					let emPong = function(s,t) {
+						PrefMon.observe(s,"EM-loaded");
+					};
+					OS.addObserver(emPong, "EM-pong", false);
+					OS.notifyObservers(null, "EM-ping", "");
+					OS.removeObserver(emPong, "EM-pong");
+					OS.addObserver(PrefMon,"EM-loaded",false);
+				});
 			});
 
 			if(!PS.getPrefType(TP[0])) {
@@ -729,13 +747,6 @@
 			}
 
 			PS.addObserver("", this, false);
-			let emPong = function(s,t) {
-				PrefMon.observe(s,"EM-loaded");
-			};
-			OS.addObserver(emPong, "EM-pong", false);
-			OS.notifyObservers(null, "EM-ping", "");
-			OS.removeObserver(emPong, "EM-pong");
-			OS.addObserver(this,"EM-loaded",false);
 		},1942);
 
 		if("nsIPrefBranch2" in Ci)
