@@ -72,9 +72,16 @@ let ecleaner = {};
 		return n;
 	}
 	
+	function duc(u) {
+		try {
+			return decodeURIComponent(dl.uri);
+		} catch(e) {}
+		return u;
+	}
+	
 	function add(b, g, n, e, i) {
 		g = {
-			label: decodeURIComponent(g),
+			label: duc(g),
 			data: e && JSON.stringify(e) || 'null'
 		};
 		if( i ) {
@@ -388,7 +395,7 @@ let ecleaner = {};
 				
 				add(l, dl.title, new Date(dl.time/1000).toISOString(),
 					{t:dl.title,u:dl.uri,d:dl.time}, gf(dl.uri))
-						.setAttribute('tooltiptext',decodeURIComponent(dl.uri));
+						.setAttribute('tooltiptext',duc(dl.uri));
 			}
 			hqr.containerOpen = false;
 			
