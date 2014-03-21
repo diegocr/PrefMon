@@ -19,6 +19,7 @@
 		CS = Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService),
 		PR = Cc["@mozilla.org/embedcomp/prompt-service;1"].getService(Ci.nsIPromptService),
 		WM = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator),
+		AS = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService),
 		SP = {
 			cooliris: ["permissions.default.image"],
 			console2: ['extensions.consolefilter'],
@@ -83,6 +84,28 @@
 					sTimer = undefined;
 				}, 910);
 			}
+		},
+
+		san: function(t,m) {
+			if(!this.asq) {
+				this.asq = [];
+			} else if(this.asw) {
+				this.asq.push([t,m]);
+				return;
+			}
+			this.roi(function() {
+				AS.showAlertNotification(__SCRIPT_URI_SPEC__+'/../icon.png',t,m,!1,"",
+					function(s,t,d) {
+						if(t != "alertshow") {
+							this.asw = !1;
+							if(this.asq.length) {
+								let [t,m] = this.asq.shift();
+								this.san(t,m);
+							}
+						}
+					}.bind(this));
+			});
+			this.asw = !0;
 		},
 
 		onDisabling: function(a) {
@@ -215,7 +238,7 @@
 			let o = {};
 			for(let [k,v] in Iterator(this.prefs)) {
 
-				if(p.test(k)) {
+				if(p.test(k) && !~PPR.indexOf(k)) {
 
 					o[k] = v;
 				}
@@ -236,19 +259,22 @@
 				return;
 			}
 
+			try {
+				p = new RegExp(this.prefs[TP[0]]);
+			} catch(e) {
+				Cu.reportError(e);
+				return;
+			}
+
 			for(let [k,v] in Iterator(this.prefs)) {
 
-				if(k in o && v !== o[k] && !~PPR.indexOf(k)) {
+				if(p.test(k) && v !== o[k] && !~PPR.indexOf(k)) {
+					let nv = k in o ? o[k] : null;
 
-					this.s(k,o[k]);
+					this.s(k,nv);
 
-					this.log('REVERTED CHANGE: `'+k+'´ FROM `'+v+'´ TO `'+o[k]+'´');
-
-					try {
-						Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService)
-							.showAlertNotification(__SCRIPT_URI_SPEC__+'/../icon.png',
-							'Reverted Change...','...on ' + k,false,"",null);
-					} catch(e) {}
+					this.log('REVERTED CHANGE: `'+k+'´ FROM `'+v+'´ TO `'+nv+'´');
+					this.san('Reverted Change...','...on ' + k);
 				}
 			}
 		},
@@ -719,8 +745,13 @@
 			});
 
 			if(!PS.getPrefType(TP[0])) {
-				PS.setCharPref(TP[0],'^((browser\\.(startup|newtab)|general\\.useragent|keyword)\\.'
-					+ '|extensions\\.(autoDisableScopes|enabledScopes))');
+				let X = [
+					'network.proxy.autoconfig_url',
+					'extensions.(autoDisableScopes|enabledScopes)',
+					'(browser.(startup|newtab)|general.useragent|keyword).',
+					'security.turn_off_all_security_so_that_viruses_can_take_over_this_computer'
+				];
+				PS.setCharPref(TP[0],'^(' + X.join("|").replace('.', '\\.', 'g') + ')');
 			}
 			if(!PS.getPrefType(TP[3])) {
 				PS.setCharPref(TP[3],'chatzilla:^extensions\\.irc\\.;wot:^weboftrust\\.');
@@ -739,7 +770,7 @@
 				this.prefs[o] = this.p(o);
 			}
 
-			if(!PS.getPrefType(TP[4])) {
+			if(!this.prefs[TP[4]]) {
 				PS.setCharPref(TP[4],'');
 				setTimeout(this.n,1492);
 			} else {
