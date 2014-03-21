@@ -85,10 +85,14 @@ let ecleaner = {};
 			data: e && JSON.stringify(e) || 'null'
 		};
 		if( i ) {
-			g.image = /^\w+$/.test(i) ? 'chrome://prefmon-ecleaner/content/'+i+'.png':i;
+			if(/^\w+$/.test(i))
+				g.image = 'chrome://prefmon-ecleaner/content/'+i+'.png';
 			g.class = 'listcell-iconic';
+			g.maxHeight = 18;
 		}
-		return b.appendChild(c('listitem',0,[c('listcell',g),c('listcell',{label:n})]))
+		n = b.appendChild(c('listitem',0,[e=c('listcell',g),c('listcell',{label:n})]));
+		if(i && !g.image) gf(i,e);
+		return n;
 	}
 	
 	function so(obj) {
@@ -173,38 +177,34 @@ let ecleaner = {};
 	function newURI(u) io.newURI(u,null,null);
 	
 	let tld = Cc["@mozilla.org/network/effective-tld-service;1"].getService(Ci.nsIEffectiveTLDService),
-		fis = Cc["@mozilla.org/browser/favicon-service;1"].getService(Ci.nsIFaviconService);
-	function gf(u) {
+		fis = Cc["@mozilla.org/browser/favicon-service;1"].getService(Ci.nsIFaviconService).QueryInterface(Ci.mozIAsyncFavicons);
+	function gf(u,n) {
 		u = newURI(u);
-		// XXX: TODO..
-		let K = typeof fis.getFaviconImageForPage !== 'function' && {equals: function() !0};
-		let i = K || fis.getFaviconImageForPage(u);
-		if(i.equals(fis.defaultFavicon)) {
-			i = K || fis.getFaviconImageForPage(newURI(u.prePath));
-			if(i.equals(fis.defaultFavicon)) {
-				if(!(/^[\d.]+$/.test(u.host))) {
-					i = K || fis.getFaviconImageForPage(newURI(u.scheme+'://'+tld.getBaseDomainFromHost(u.host)));
-				}
-				if(i.equals(fis.defaultFavicon)) {
-					/**
-					 * Generate favicon from url's hash
-					 * Inspired by Don Park's Identicon
-					 * Copyright (C)2013 Diego Casorran
-					 * [Made for eCleaner Fx Extension]
-					 */
-					let canvas = d.createElementNS("http://www.w3.org/1999/xhtml", "canvas"),
-						ctx = canvas.getContext("2d");
-					canvas.width = canvas.height = 16;
-					ctx.fillStyle = "#"+hash(u.prePath).toString(16);
-					ctx.beginPath();
-					ctx.arc(8, 8, 8, 0, Math.PI*2, !0);
-					ctx.closePath();
-					ctx.fill();
-					i = newURI(canvas.toDataURL("image/png"));
-				}
+		fis.getFaviconURLForPage(u, function(aURI) {
+			try {
+				aURI = aURI && aURI.spec || u.scheme+'://'+tld.getBaseDomainFromHost(u.host)+'/favicon.ico';
+			} catch(e) {
+				aURI = u.prePath + '/favicon.ico';
 			}
-		}
-		return i.spec;
+			
+			n.addEventListener('error', function() {
+				let canvas = d.createElementNS("http://www.w3.org/1999/xhtml", "canvas"),
+					ctx = canvas.getContext("2d");
+				canvas.width = canvas.height = 16;
+				ctx.fillStyle = "#"+hash(u.prePath).toString(16);
+				ctx.beginPath();
+				ctx.arc(8, 8, 8, 0, Math.PI*2, !0);
+				ctx.closePath();
+				ctx.fill();
+				n.setAttribute('image', canvas.toDataURL("image/png"));
+			}, !0);
+			n.setAttribute('image', aURI);
+			
+			try {
+				n.ownerDocument.getAnonymousElementByAttribute(n,'class','listcell-icon')
+					.setAttribute('style', 'max-width:16px;max-height:16px');
+			} catch(e) {}
+		});
 	}
 	
 	let tbl = [];
@@ -394,7 +394,7 @@ let ecleaner = {};
 				let dl = hqr.getChild(n);
 				
 				add(l, dl.title, new Date(dl.time/1000).toISOString(),
-					{t:dl.title,u:dl.uri,d:dl.time}, gf(dl.uri))
+					{t:dl.title,u:dl.uri,d:dl.time}, dl.uri)
 						.setAttribute('tooltiptext',duc(dl.uri));
 			}
 			hqr.containerOpen = false;
