@@ -74,7 +74,7 @@ let ecleaner = {};
 	
 	function duc(u) {
 		try {
-			return decodeURIComponent(dl.uri);
+			return decodeURIComponent(u);
 		} catch(e) {}
 		return u;
 	}
