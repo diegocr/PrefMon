@@ -215,7 +215,7 @@
 					}
 					SPR[p[0]] = new RegExp(p[1]);
 				} catch(e) {
-					Cu.reportError(e);
+					reportError(e, p.join(":"));
 				}
 			});
 		},
@@ -231,7 +231,7 @@
 			try {
 				p = new RegExp(p);
 			} catch(e) {
-				Cu.reportError(e);
+				reportError(e, TP[0]);
 				return;
 			}
 
@@ -254,7 +254,7 @@
 				o = JSON.parse(p=this.p(TP[4]));
 			} catch(e) {
 				if(p) {
-					Cu.reportError(e);
+					reportError(e, p);
 				}
 				return;
 			}
@@ -262,7 +262,7 @@
 			try {
 				p = new RegExp(this.prefs[TP[0]]);
 			} catch(e) {
-				Cu.reportError(e);
+				reportError(e, TP[0]);
 				return;
 			}
 
@@ -291,7 +291,7 @@
 					this.s(TP[4],this.prefs[TP[4]] = JSON.stringify(o));
 				}
 			} catch(e) {
-				Cu.reportError(e);
+				reportError(e, TP[0]);
 			}
 		},
 
@@ -611,7 +611,7 @@
 							break;
 						}
 					} catch(e) {
-						Cu.reportError(e);
+						reportError(e, TP[0]);
 					}
 
 					let b = WM;
@@ -632,7 +632,7 @@
 						if(new RegExp(j).test(dL))
 							break;
 					} catch(e) {
-						Cu.reportError(e);
+						reportError(e, TP[2]);
 					}
 
 					let n = b.getNotificationBox(), bn = "More Info", pn;
@@ -711,6 +711,12 @@
 
 		QueryInterface: XPCOMUtils.generateQI(Ci.nsIConsoleListener)
 	};
+	
+	function reportError(ex, m)
+	{
+		if (m) Cu.reportError('Error processing "'+m+'" -> ' + ex);
+		else Cu.reportError(ex);
+	}
 
 	let sTimer;
 	function setTimeout(f,n) {
